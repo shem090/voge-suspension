@@ -29,15 +29,14 @@ st.markdown("""
     .value-badge-blue { background-color: #3A86FF; color: #FFFFFF; font-size: 1.05em; font-weight: bold; padding: 6px 12px; border-radius: 6px; min-width: 80px; text-align: center; white-space: nowrap; }
     .value-badge-green { background-color: #38B000; color: #FFFFFF; font-size: 1.05em; font-weight: bold; padding: 6px 12px; border-radius: 6px; min-width: 80px; text-align: center; white-space: nowrap; }
     </style>
-
 """, unsafe_allow_html=True)
 
 # Ссылки из Секретов Streamlit
 URL_BASE = st.secrets["URL_BASE"]
 URL_REVIEWS = st.secrets["URL_REVIEWS"]
 
-# Вставьте сюда вашу сохраненную ссылку из Apps Script
-WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzwCbdFFRBzbapPVwR5UxYAcWnPsQDlquFyBhlMRnoCMUPYd8vF1KdjJF65Y8KrlONM/exec"
+# Вставьте вашу сохраненную ссылку из Apps Script
+WEB_APP_URL = "https://google.com"
 
 @st.cache_data(ttl=15)
 def load_all_data():
@@ -51,7 +50,7 @@ def load_all_data():
             df_r.columns = df_r.columns.str.strip()
             df_r['Загрузка'] = df_r['Загрузка'].astype(str).str.strip()
         except Exception:
-            df_r = pd.DataFrame(columns=['Имя', 'Вес', 'Загрузка', 'Перед_Преднатяг_Витков', 'Перед_Сжатие', 'Перед_Отбой', 'Зад_Преднатяг', 'Зад_Отбой', 'Перед_Реальный_Сэг_мм', 'Зад_Реальный_Сэг_мм', 'Причина_Текст'])
+            df_r = pd.DataFrame(columns=['Имя', 'Вес', 'Загрузка', 'Перед_Преднатяг_Витков', 'Перед_Сжатие', 'Перед_Отбой', 'Зад_Преднатяг', 'Зад_Отбой', 'Перед_Реальный_Сэг_мм', 'Зад_Реальный_Сэг_мм', 'Причина_Текст', 'Лайки'])
             
         return df_b, df_r
     except Exception as e:
@@ -98,7 +97,7 @@ if df_base is not None:
 
     st.header("🛠️ Рекомендуемые настройки")
     
-        # Передняя вилка — компактный вид с переносом подсказок
+    # Передняя вилка — компактный вид с переносом подсказок
     st.markdown(f"""
     <div class="fork-card">
         <div class="card-title">⚙️ Передняя вилка</div>
@@ -107,35 +106,35 @@ if df_base is not None:
             <span class="value-badge-blue">{b_p_tur} рис.</span>
         </div>
         <div class="value-container">
-            <span class="value-label">• Гидравлика Сжатия<br><small style="color: #888888; font-style: italic;">(от полностью закрученного)</small></span>
+            <span class="value-label">• <i>Гидравлика Сжатия</i><br><small style="color: #888888; font-style: italic;">(от полностью закрученного)</small></span>
             <span class="value-badge-blue">{b_p_szh} щелч.</span>
         </div>
         <div class="value-container">
-            <span class="value-label">• Гидравлика Отбоя<br><small style="color: #888888; font-style: italic;">(от полностью закрученного)</small></span>
+            <span class="value-label">• <i>Гидравлика Отбоя</i><br><small style="color: #888888; font-style: italic;">(от полностью закрученного)</small></span>
             <span class="value-badge-blue">{b_p_otb} щелч.</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-            # Задний амортизатор — компактный вид с переносом подсказок
+    # Задний амортизатор — компактный вид с переносом подсказок
     st.markdown(f"""
     <div class="shock-card">
         <div class="card-title">⚙️ Задний амортизатор</div>
         <div class="value-container">
-            <span class="value-label">• Преднатяг пружины<br><small style="color: #888888; font-style: italic;">(от полностью открученного)</small></span>
+            <span class="value-label">• Преднатяг пружины<br><small style="color: #888888; font-style: italic;">(от полностью распущенного)</small></span>
             <span class="value-badge-green">{b_z_pred} щелч.</span>
         </div>
         <div class="value-container">
-            <span class="value-label">• Гидравлика Отбоя<br><small style="color: #888888; font-style: italic;">(от полностью закрученного)</small></span>
+            <span class="value-label">• <i>Гидравлика Отбоя</i><br><small style="color: #888888; font-style: italic;">(от полностью закрученного)</small></span>
             <span class="value-badge-green">{b_z_otb} щелч.</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
     
     if b_notes and b_notes != "nan" and b_notes.strip() != "":
-        st.warning(f"📝 **Базовая памятка:** {b_notes}")
+        st.warning(f"📝 **Памятка:** {b_notes}")
 
-                  # ==================== ВЫВОД ОТЗЫВОВ КЛУБА (КАРУСЕЛЬ) ====================
+    # ==================== ВЫВОД ОТЗЫВОВ КЛУБА (КАРУСЕЛЬ) ====================
     st.header("👥 Живой опыт других владельцев")
     matching_reviews = df_reviews[(df_reviews['Вес'] == str(rounded_weight)) & (df_reviews['Загрузка'] == loading_mode)]
     
@@ -146,26 +145,18 @@ if df_base is not None:
         if 'review_index' not in st.session_state:
             st.session_state.review_index = 0
             
-        # Защита от выхода за границы, если количество отзывов изменилось
         if st.session_state.review_index >= total_reviews:
             st.session_state.review_index = 0
 
-        # Получаем данные текущего отзыва по индексу
         r_row = matching_reviews.iloc[st.session_state.review_index]
         
-        # Проверяем и считываем количество лайков из 12-го столбца L таблицы
+        # Считываем количество лайков из 12-го столбца таблицы
         likes_count = r_row.get('Лайки', '0')
         if str(likes_count) == 'nan' or not str(likes_count).isdigit():
             likes_count = '0'
 
-        # Компактная панель навигации (Назад | Лайк | Вперед)
-        nav_col1, nav_col2, nav_col3 = st.columns([1, 1.3, 1])
-        with nav_col1:
-            if st.button("⬅️ Назад", key="btn_prev", use_container_width=True):
-                st.session_state.review_index = (st.session_state.review_index - 1) % total_reviews
-                st.rerun()
-                # Компактная панель навигации (Назад | Лайк-Отмена | Вперед)
-        nav_col1, nav_col2, nav_col3 = st.columns([1, 1.3, 1])
+        # Компактная панель навигации (Назад | Лайк-Отмена | Вперед)
+        nav_col1, nav_col2, nav_col3 = st.columns([1, 1.4, 1])
         unique_suffix = f"{rounded_weight}_{loading_mode.replace(' ', '_')}"
         
         with nav_col1:
@@ -174,33 +165,27 @@ if df_base is not None:
                 st.rerun()
                 
         with nav_col2:
-            # Создаем уникальный текстовый ключ для проверки лайка конкретного отзыва
             like_id = f"liked_{r_row['Имя']}_{unique_suffix}"
             has_liked = st.session_state.get(like_id, False)
-            
-            # Меняем текст и иконку кнопки в зависимости от того, нажат лайк или нет
             btn_text = f"❤️ Полезно ({likes_count})" if not has_liked else f"💖 Отменить лайк ({likes_count})"
             
             if st.button(btn_text, key=f"like_{st.session_state.review_index}_{likes_count}_{unique_suffix}", use_container_width=True):
-                if WEB_APP_URL != "СЮДА_ВСТАВЬТЕ_ВАШУ_ССЫЛКУ_ИЗ_APPS_SCRIPT":
+                if WEB_APP_URL != "https://google.com":
                     try:
                         if not has_liked:
-                            # 1. СИТУАЦИЯ: Лайка нет -> Ставим лайк (+1 в базу)
                             requests.post(WEB_APP_URL, json={"action": "like", "name": str(r_row['Имя'])})
                             st.session_state[like_id] = True
                             st.toast(f"Вы круты! Лайк для {r_row['Имя']} учтен 💥")
                         else:
-                            # 2. СИТУАЦИЯ: Лайк уже есть -> Снимаем лайк (-1 из базы)
                             requests.post(WEB_APP_URL, json={"action": "unlike", "name": str(r_row['Имя'])})
                             st.session_state[like_id] = False
                             st.toast(f"Лайк для {r_row['Имя']} успешно отменен ↩️")
-                        
-                        st.cache_data.clear() # Сбрасываем кэш, чтобы обновить цифру
+                        st.cache_data.clear()
                         st.rerun()
                     except Exception:
                         st.error("Ошибка связи с сервером.")
                         
-        with nav_col3:
+                with nav_col3:
             if st.button("Вперед ➡️", key=f"btn_next_{unique_suffix}", use_container_width=True):
                 st.session_state.review_index = (st.session_state.review_index + 1) % total_reviews
                 st.rerun()
@@ -213,7 +198,7 @@ if df_base is not None:
         <div class="user-review">
             <div class="review-header" style="display: flex; justify-content: space-between;">
                 <span>🏍️ Райдер: {r_row['Имя']} | {rounded_weight} кг | {loading_mode}</span>
-                <span style="color: #FF9F1C;">Отзыв {st.session_state.review_index + 1} из {total_reviews}</span>
+                <span style="color: #FF9F1C; font-weight: bold;">Отзыв {st.session_state.review_index + 1} из {total_reviews}</span>
             </div>
             <p class="sub-text" style="line-height: 1.5;">
                 <b>⚙️ Передняя вилка:</b>
@@ -236,38 +221,30 @@ if df_base is not None:
         st.info("Альтернативных сетапов для этих параметров пока нет. Станьте первым!")
 
     # ==================== УМНАЯ ФОРМА ОТПРАВКИ ОТЗЫВА ====================
-    # Память для автоматического закрытия формы
-    if 'show_form' not in st.session_state:
-        st.session_state.show_form = False
-        
-    if 'show_success' not in st.session_state:
-        st.session_state.show_success = False
+    if 'show_form' not in st.session_state: st.session_state.show_form = False
+    if 'show_success' not in st.session_state: st.session_state.show_success = False
 
-    # Показываем зелёную плашку успеха, если отзыв только что отправили
     if st.session_state.show_success:
         st.success("✅ Отзыв успешно опубликован! Сетап мгновенно добавлен в базу.")
-        # Сбрасываем плашку при следующем шевелении ползунков веса
         st.session_state.show_success = False
 
-    # Логика кнопки открытия/закрытия формы
     form_label = "❌ Закрыть форму написания отзыва" if st.session_state.show_form else "✍️ Добавить свой вариант настройки / Предложить изменения"
     if st.button(form_label, key="toggle_form_btn"):
         st.session_state.show_form = not st.session_state.show_form
         st.rerun()
 
-    # Если форма открыта — рендерим поля ввода
     if st.session_state.show_form:
         with st.container(border=True):
             user_name = st.text_input("Ваш ник в чате / Имя", placeholder="Например: Voge_Rider_77")
             col1, col2 = st.columns(2)
             with col1:
-                st.markdown("**⚙️ Ваша передняя вилка:**")
+                st.markdown("**⚓ Ваша передняя вилка:**")
                 u_p_tur = st.number_input("Преднатяг (риски)", value=float(b_p_tur) if b_p_tur.replace('.', '', 1).isdigit() else 3.0, step=0.5, key="up1")
                 u_p_szh = st.number_input("Сжатие (щелчки)", value=int(b_p_szh) if b_p_szh.isdigit() else 12, step=1, key="up2")
                 u_p_otb = st.number_input("Отбой (щелчки)", value=int(b_p_otb) if b_p_otb.isdigit() else 9, step=1, key="up3")
                 u_p_seg = st.number_input("Реальный Сэг переда (мм)", value=58, step=1, key="up4")
             with col2:
-                st.markdown("**⚙️ Ваш задний амортизатор:**")
+                st.markdown("**🪐 Ваш задний амортизатор:**")
                 u_z_pred = st.number_input("Преднатяг (щелчки)", value=int(b_z_pred) if b_z_pred.isdigit() else 17, step=1, key="uz1")
                 u_z_otb = st.number_input("Отбой (щелчки)", value=int(b_z_otb) if b_z_otb.isdigit() else 17, step=1, key="uz2")
                 u_z_seg = st.number_input("Замеренный Сэг зада (мм)", value=60, step=1, key="uz3")
@@ -277,8 +254,6 @@ if df_base is not None:
             if st.button("🚀 Опубликовать сетап в приложении", key="submit_review_btn"):
                 if not user_name.strip() or not user_comment.strip():
                     st.error("Заполните ваше имя и причину изменений перед отправкой.")
-                elif WEB_APP_URL == "СЮДА_ВСТАВЬТЕ_ВАШУ_ССЫЛКУ_ИЗ_APPS_SCRIPT":
-                    st.error("Настройте скрипт отправки в Google Таблицу.")
                 else:
                     payload = {
                         "name": str(user_name), "weight": str(rounded_weight), "mode": str(loading_mode),
@@ -291,7 +266,6 @@ if df_base is not None:
                         res = requests.post(WEB_APP_URL, json=payload)
                         if res.status_code == 200:
                             st.cache_data.clear()
-                            # ВКЛЮЧАЕМ ТРИГГЕРЫ: Закрыть форму и Показать надпись успеха
                             st.session_state.show_form = False
                             st.session_state.show_success = True
                             st.rerun()
