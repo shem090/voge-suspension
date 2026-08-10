@@ -164,15 +164,30 @@ if df_base is not None:
             if st.button("⬅️ Назад", key="btn_prev", use_container_width=True):
                 st.session_state.review_index = (st.session_state.review_index - 1) % total_reviews
                 st.rerun()
-        with nav_col2:
-            # Настоящая кнопка лайка с отправкой команды "like" в Google Таблицу
-            if st.button(f"❤️ Полезно ({likes_count})", key=f"like_{st.session_state.review_index}_{likes_count}", use_container_width=True):
-                if WEB_APP_URL != "СЮДА_ВСТАВЬТЕ_ВАШУ_ССЫЛКУ_ИЗ_APPS_SCRIPT":
+                with nav_col2:
+            # Создаем уникальный текстовый ключ для этого отзыва (Имя автора + его Вес + Режим)
+            like_id = f"liked_{r_row['Имя']}_{rounded_weight}_{loading_mode}".replace(" ", "_")
+            
+            # Проверяем во временной памяти браузера, ставил ли человек уже лайк
+            has_liked = st.session_state.get(like_id, False)
+            
+            # Если лайк уже стоит, меняем цвет иконки или текст
+            btn_text = f"❤️ Полезно ({likes_count})" if not has_liked else f"💖 Вы лайкнули ({likes_count})"
+            
+            if st.button(btn_text, key=f"like_{st.session_state.review_index}_{likes_count}", use_container_width=True):
+                if has_liked:
+                    # Если лайк уже нажат ранее, просто выводим предупреждение на экран
+                    st.warning("⚠️ Вы уже проголосовали за этот сетап!")
+                elif WEB_APP_URL != "СЮДА_ВСТАВЬТЕ_ВАШУ_ССЫЛКУ_ИЗ_APPS_SCRIPT":
                     try:
-                        # Отправляем JSON-команду с экшеном и точным именем автора для инкремента лайка
+                        # Отправляем JSON-команду на накрутку лайка в Google Таблицу
                         requests.post(WEB_APP_URL, json={"action": "like", "name": str(r_row['Имя'])})
+                        
+                        # Блокируем повторное нажатие для этого пользователя в сессии
+                        st.session_state[like_id] = True
+                        
                         st.cache_data.clear() # Стираем кэш приложения, чтобы сразу подгрузить новую цифру лайков
-                        st.toast(f"Вы круты! Лайк для {r_row['Имя']} успешно учтен 💥")
+                        st.toast(f"Вы круты! Лайк для {r_row['Имя']} учтен 💥")
                         st.rerun()
                     except Exception:
                         st.error("Ошибка связи при отправке лайка.")
