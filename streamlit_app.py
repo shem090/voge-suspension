@@ -37,7 +37,7 @@ URL_BASE = st.secrets["URL_BASE"]
 URL_REVIEWS = st.secrets["URL_REVIEWS"]
 
 # Вставьте сюда вашу сохраненную ссылку из Apps Script
-WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwqvbMw4s9OdMgdnNZUJNl8oVKvLIYijh65FzU-5DGkTAHjVNPYkTYV5_oYtHF6Rhmq/exec"
+WEB_APP_URL = "https://script.google.com/macros/s/AKfycby2c37S24gsRqEjhfjqovcVCjPsjxhTvigbZgkcoanRbd9nCNwXrPm3qeqQj-PqtBrU/exec"
 
 @st.cache_data(ttl=15)
 def load_all_data():
@@ -135,36 +135,63 @@ if df_base is not None:
     if b_notes and b_notes != "nan" and b_notes.strip() != "":
         st.warning(f"📝 **Базовая памятка:** {b_notes}")
 
-            # ==================== ВЫВОД ОТЗЫВОВ КЛУБА ====================
+               # ==================== ВЫВОД ОТЗЫВОВ КЛУБА (КАРУСЕЛЬ) ====================
     st.header("👥 Живой опыт других владельцев")
     matching_reviews = df_reviews[(df_reviews['Вес'] == str(rounded_weight)) & (df_reviews['Загрузка'] == loading_mode)]
     
     if not matching_reviews.empty:
-        for _, r_row in matching_reviews.iterrows():
-            # Защита от сдвигов: проверяем наличие новых колонок сэга
-            p_s = r_row['Перед_Реальный_Сэг_мм'] if 'Перед_Реальный_Сэг_мм' in df_reviews.columns else "58"
-            z_s = r_row['Зад_Реальный_Сэг_мм'] if 'Зад_Реальный_Сэг_мм' in df_reviews.columns else "60"
+        total_reviews = len(matching_reviews)
+        
+        # Инициализируем индекс текущего отзыва в памяти приложения
+        if 'review_index' not in st.session_state:
+            st.session_state.review_index = 0
             
-            st.markdown(f"""
-            <div class="user-review">
-                <div class="review-header">🏍️ Райдер: {r_row['Имя']} | {rounded_weight} кг | {loading_mode}</div>
-                <p class="sub-text" style="line-height: 1.5;">
-                    <b>⚙️ Передняя вилка:</b>
-                    <br>• Преднатяг: {r_row['Перед_Преднатяг_Витков']} рис.
-                    <br>• Сжатие: {r_row['Перед_Сжатие']} щелч.
-                    <br>• Отбой: {r_row['Перед_Отбой']} щелч.
-                    <br><span style="color: #888888;">📊 Реальный Сэг переда: {p_s} мм</span>
-                    <br><br>
-                    <b>⚙️ Задний амортизатор:</b>
-                    <br>• Преднатяг: {r_row['Зад_Преднатяг']} щелч.
-                    <br>• Отбой: {r_row['Зад_Отбой']} щелч.
-                    <br><span style="color: #888888;">📊 Реальный Сэг зада: {z_s} мм</span>
-                </p>
-                <p style="margin-top: 12px; font-size: 0.9em; color: #FF9F1C; line-height: 1.3; border-top: 1px solid #2D2D2D; padding-top: 8px;">
-                    💬 <b>Почему изменил:</b> {r_row['Причина_Текст']}
-                </p>
+        # Защита от выхода за границы, если количество отзывов изменилось
+        if st.session_state.review_index >= total_reviews:
+            st.session_state.review_index = 0
+
+        # Получаем данные текущего отзыва по индексу
+        r_row = matching_reviews.iloc[st.session_state.review_index]
+        
+        # Создаем компактную панель навигации (Назад | Счетчик | Вперед)
+        nav_col1, nav_col2, nav_col3 = st.columns([1, 2, 1])
+        with nav_col1:
+            if st.button("⬅️ Назад", use_container_width=True):
+                st.session_state.review_index = (st.session_state.review_index - 1) % total_reviews
+                st.rerun()
+        with nav_col2:
+            st.markdown(f"<p style='text-align: center; font-size: 1.1em; font-weight: bold; margin-top: 5px; color: #888888;'>Отзыв {st.session_state.review_index + 1} из {total_reviews}</p>", unsafe_allow_html=True)
+        with nav_col3:
+            if st.button("Вперед ➡️", use_container_width=True):
+                st.session_state.review_index = (st.session_state.review_index + 1) % total_reviews
+                st.rerun()
+
+        # Вывод самого отзыва
+        p_s = r_row['Перед_Реальный_Сэг_мм'] if 'Перед_Реальный_Сэг_мм' in df_reviews.columns else "58"
+        z_s = r_row['Зад_Реальный_Сэг_мм'] if 'Зад_Реальный_Сэг_мм' in df_reviews.columns else "60"
+        
+        st.markdown(f"""
+        <div class="user-review">
+            <div class="review-header">
+                🏍️ Райдер: {r_row['Имя']} | {rounded_weight} кг | {loading_mode}
             </div>
-            """, unsafe_allow_html=True)
+            <p class="sub-text" style="line-height: 1.5;">
+                <b>⚙️ Передняя вилка:</b>
+                <br>• Преднатяг: {r_row['Перед_Преднатяг_Витков']} рис.
+                <br>• Сжатие: {r_row['Перед_Сжатие']} щелч.
+                <br>• Отбой: {r_row['Перед_Отбой']} щелч.
+                <br><span style="color: #888888;">📊 Реальный Сэг переда: {p_s} мм</span>
+                <br><br>
+                <b>⚙️ Задний амортизатор:</b>
+                <br>• Преднатяг: {r_row['Зад_Преднатяг']} щелч.
+                <br>• Отбой: {r_row['Зад_Отбой']} щелч.
+                <br><span style="color: #888888;">📊 Реальный Сэг зада: {z_s} мм</span>
+            </p>
+            <p style="margin-top: 12px; font-size: 0.9em; color: #FF9F1C; line-height: 1.3; border-top: 1px solid #2D2D2D; padding-top: 8px;">
+                💬 <b>Почему изменил:</b> {r_row['Причина_Текст']}
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
     else:
         st.info("Альтернативных сетапов для этих параметров пока нет. Станьте первым!")
 
