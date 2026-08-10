@@ -164,16 +164,20 @@ if df_base is not None:
             if st.button("⬅️ Назад", key="btn_prev", use_container_width=True):
                 st.session_state.review_index = (st.session_state.review_index - 1) % total_reviews
                 st.rerun()
-                # Компактная панель навигации (Назад | Лайк | Вперед)
+                # Компактная панель навигации (Назад | Лайк | Вперед) с уникальными ключами
         nav_col1, nav_col2, nav_col3 = st.columns([1, 1.3, 1])
+        
+        # Генерируем уникальный суффикс для ключей на основе текущих параметров
+        unique_suffix = f"{rounded_weight}_{loading_mode.replace(' ', '_')}"
+        
         with nav_col1:
-            if st.button("⬅️ Назад", key="btn_prev", use_container_width=True):
+            if st.button("⬅️ Назад", key=f"btn_prev_{unique_suffix}", use_container_width=True):
                 st.session_state.review_index = (st.session_state.review_index - 1) % total_reviews
                 st.rerun()
                 
         with nav_col2:
             # Создаем уникальный текстовый ключ для этого отзыва
-            like_id = f"liked_{r_row['Имя']}_{rounded_weight}_{loading_mode}".replace(" ", "_")
+            like_id = f"liked_{r_row['Имя']}_{unique_suffix}"
             
             # Проверяем в памяти, ставил ли человек уже лайк
             has_liked = st.session_state.get(like_id, False)
@@ -181,7 +185,7 @@ if df_base is not None:
             # Если лайк уже стоит, меняем текст кнопки
             btn_text = f"❤️ Полезно ({likes_count})" if not has_liked else f"💖 Вы лайкнули ({likes_count})"
             
-            if st.button(btn_text, key=f"like_{st.session_state.review_index}_{likes_count}", use_container_width=True):
+            if st.button(btn_text, key=f"like_{st.session_state.review_index}_{likes_count}_{unique_suffix}", use_container_width=True):
                 if has_liked:
                     st.warning("⚠️ Вы уже проголосовали!")
                 elif WEB_APP_URL != "СЮДА_ВСТАВЬТЕ_ВАШУ_ССЫЛКУ_ИЗ_APPS_SCRIPT":
@@ -195,7 +199,7 @@ if df_base is not None:
                         st.error("Ошибка связи при отправке лайка.")
                         
         with nav_col3:
-            if st.button("Вперед ➡️", key="btn_next", use_container_width=True):
+            if st.button("Вперед ➡️", key=f"btn_next_{unique_suffix}", use_container_width=True):
                 st.session_state.review_index = (st.session_state.review_index + 1) % total_reviews
                 st.rerun()
 
