@@ -80,16 +80,20 @@ if df_base is not None:
     filtered_df = df_base[(df_base['weight'] == rounded_weight) & (df_base['mode'] == loading_mode)]
 
     # Вытаскиваем значения. Если строка найдена — берем данные из столбцов, если нет — ставим дефолт на 90кг
-    b_p_szh = str(filtered_df['comp_f'].values[0]).strip() if not filtered_df.empty else "12"
-    b_p_otb = str(filtered_df['reb_f'].values[0]).strip() if not filtered_df.empty else "9"
-    b_p_tur = str(filtered_df['preload_f'].values[0]).strip() if not filtered_df.empty else "3"
-    b_z_pred = str(filtered_df['preload_r'].values[0]).strip() if not filtered_df.empty else "17"
-    b_z_otb = str(filtered_df['reb_r'].values[0]).strip() if not filtered_df.empty else "17"
+    if not filtered_df.empty:
+        # Превращаем первую строку в чистый список значений
+        vals = filtered_df.values[0].tolist()
+        b_p_szh = str(vals[2]).strip()
+        b_p_otb = str(vals[3]).strip()
+        b_p_tur = str(vals[4]).strip() # Столбец E с рисками
+        b_z_pred = str(vals[5]).strip()
+        b_z_otb = str(vals[6]).strip()
+    else:
+        b_p_szh, b_p_otb, b_p_tur, b_z_pred, b_z_otb = "12", "9", "3", "17", "17"
 
-    # Красиво отрезаем лишние нули у целых чисел, если они появились (превращаем "3.0" в "3")
+    # Отрезаем лишние нули у целых чисел (превращаем "3.0" в "3")
     if b_p_tur.endswith('.0'):
         b_p_tur = b_p_tur[:-2]
-
     # Блок вывода рекомендуемых настроек
     st.header("🛠️ Рекомендуемые настройки")
     
