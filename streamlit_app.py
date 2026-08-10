@@ -142,13 +142,13 @@ if df_base is not None:
             <div class="user-review">
                 <div class="review-header">🏍️ Райдер: {r_row['Имя']} | {rounded_weight} кг | {loading_mode}</div>
                 <p class="sub-text" style="line-height: 1.5;">
-                    <b>⚓ Передняя вилка:</b>
+                    <b>⚙️ Передняя вилка:</b>
                     <br>• Преднатяг: {r_row['Перед_Преднатяг_Витков']} рис.
                     <br>• Сжатие: {r_row['Перед_Сжатие']} щелч.
                     <br>• Отбой: {r_row['Перед_Отбой']} щелч.
                     <br><span style="color: #888888;">📊 Реальный Сэг переда: {p_s} мм</span>
                     <br><br>
-                    <b>🪐 Задний амортизатор:</b>
+                    <b>⚙️ Задний амортизатор:</b>
                     <br>• Преднатяг: {r_row['Зад_Преднатяг']} щелч.
                     <br>• Отбой: {r_row['Зад_Отбой']} щелч.
                     <br><span style="color: #888888;">📊 Реальный Сэг зада: {z_s} мм</span>
