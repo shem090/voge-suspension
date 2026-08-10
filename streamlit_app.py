@@ -161,10 +161,16 @@ if df_base is not None:
                 st.error("Настройте скрипт отправки в Google Таблицу.")
             else:
                 payload = {
-                    "name": user_name, "weight": rounded_weight, "mode": loading_mode,
-                    "p_seg": float(u_p_tur), "p_szh": int(u_p_szh), "p_otb": int(u_p_otb),
-                    "z_pred": int(u_z_pred), "z_otb": int(u_z_otb), "z_seg": int(u_z_seg),
-                    "text": user_comment
+                    "name": str(user_name), 
+                    "weight": str(rounded_weight), 
+                    "mode": str(loading_mode),
+                    "p_seg": str(u_p_tur), 
+                    "p_szh": str(u_p_szh), 
+                    "p_otb": str(u_p_otb),
+                    "z_pred": str(u_z_pred), 
+                    "z_otb": str(u_z_otb), 
+                    "z_seg": str(u_z_seg) if 'u_z_seg' in locals() else "60",
+                    "text": str(user_comment)
                 }
                 try:
                     res = requests.post(WEB_APP_URL, json=payload)
