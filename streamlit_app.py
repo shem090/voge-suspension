@@ -134,35 +134,38 @@ if df_base is not None:
     if b_notes and b_notes != "nan" and b_notes.strip() != "":
         st.warning(f"📝 **Памятка:** {b_notes}")
 
-    # ==================== ВЫВОД ОТЗЫВОВ КЛУБА (КАРУСЕЛЬ) ====================
+        # ==================== ВЫВОД ОТЗЫВОВ КЛУБА (СЕЛЕКТОР) ====================
     st.header("👥 Живой опыт других владельцев")
     matching_reviews = df_reviews[(df_reviews['Вес'] == str(rounded_weight)) & (df_reviews['Загрузка'] == loading_mode)]
     
     if not matching_reviews.empty:
         total_reviews = len(matching_reviews)
         
-        # Инициализируем индекс текущего отзыва в памяти приложения
-        if 'review_index' not in st.session_state:
-            st.session_state.review_index = 0
+        # Создаем красивый список вариантов для выпадающего меню (например: "Отзыв 1 из 2 (Shem090)")
+        review_options = []
+        for idx, r_row in matching_reviews.iterrows():
+            review_options.append(f"🗒️ Вариант {len(review_options) + 1} из {total_reviews} (Райдер: {r_row['Имя']})")
             
-        if st.session_state.review_index >= total_reviews:
-            st.session_state.review_index = 0
-
-        r_row = matching_reviews.iloc[st.session_state.review_index]
+        # Один элемент выбора на всю ширину экрана - верстка никогда не сломается!
+        selected_option = st.selectbox("📖 Выберите сетап для просмотра:", review_options)
+        
+        # Получаем индекс выбранного отзыва
+        selected_index = review_options.index(selected_option)
+        r_row = matching_reviews.iloc[selected_index]
         
         # Считываем количество лайков из 12-го столбца таблицы
         likes_count = r_row.get('Лайки', '0')
         if str(likes_count) == 'nan' or not str(likes_count).isdigit():
             likes_count = '0'
 
-        # Уникальный суффикс для кнопок
+        # Уникальный суффикс для кнопок лайка
         unique_suffix = f"{rounded_weight}_{loading_mode.replace(' ', '_')}"
         like_id = f"liked_{r_row['Имя']}_{unique_suffix}"
         has_liked = st.session_state.get(like_id, False)
         btn_text = f"❤️ Полезно ({likes_count})" if not has_liked else f"💖 Отменить лайк ({likes_count})"
 
-        # 1. СНАЧАЛА КНОПКА ЛАЙКА (на всю ширину)
-        like_btn_key = f"like_btn_{unique_suffix}_{st.session_state.review_index}_{likes_count}"
+        # КНОПКА ЛАЙКА ПОД СЕЛЕКТОРОМ (на всю ширину)
+        like_btn_key = f"like_btn_{unique_suffix}_{selected_index}_{likes_count}"
         if st.button(btn_text, key=like_btn_key, use_container_width=True):
             try:
                 if not has_liked:
@@ -178,18 +181,7 @@ if df_base is not None:
             except Exception:
                 st.error("Ошибка связи с сервером таблицы.")
 
-        # 2. ПОД НЕЙ ВПЕРЕД И НАЗАД НА ОДНОЙ СТРОКЕ (Через компактные стандартные кнопки без текста)
-        # Мы используем st.columns со специальной пропорцией [1, 1], чтобы зажать их по центру
-        st.write("") # Небольшой отступ
-        c_left, c_right = st.columns(2)
-        if c_left.button(" ⬅️ ", key=f"btn_l_{unique_suffix}_{st.session_state.review_index}", use_container_width=True):
-            st.session_state.review_index = (st.session_state.review_index - 1) % total_reviews
-            st.rerun()
-        if c_right.button(" ➡️ ", key=f"btn_r_{unique_suffix}_{st.session_state.review_index}", use_container_width=True):
-            st.session_state.review_index = (st.session_state.review_index + 1) % total_reviews
-            st.rerun()
-
-        # 3. САМА КАРТОЧКА ОТЗЫВА
+        # САМА КАРТОЧКА ВЫБРАННОГО ОТЗЫВА
         p_s = r_row['Перед_Реальный_Сэг_мм'] if 'Перед_Реальный_Сэг_мм' in df_reviews.columns else "58"
         z_s = r_row['Зад_Реальный_Сэг_мм'] if 'Зад_Реальный_Сэг_мм' in df_reviews.columns else "60"
         
@@ -197,7 +189,7 @@ if df_base is not None:
         <div class="user-review" style="margin-top: 10px;">
             <div class="review-header" style="display: flex; justify-content: space-between;">
                 <span>🏍️ Райдер: {r_row['Имя']} | {rounded_weight} кг | {loading_mode}</span>
-                <span style="color: #FF9F1C; font-weight: bold;">Отзыв {st.session_state.review_index + 1} из {total_reviews}</span>
+                <span style="color: #FF9F1C; font-weight: bold;">Сетап {selected_index + 1} из {total_reviews}</span>
             </div>
             <p class="sub-text" style="line-height: 1.5;">
                 <b>⚙️ Передняя вилка:</b>
