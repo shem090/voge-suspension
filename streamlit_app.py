@@ -29,8 +29,8 @@ st.markdown("""
 URL_BASE = st.secrets["URL_BASE"]
 URL_REVIEWS = st.secrets["URL_REVIEWS"]
 
-# Вставьте сюда вашу ссылку из Apps Script, полученную ранее
-WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzwgYieaAX5vFI4rTiGGgv7Utng82NPqfKmXEWBwjyE_ji6HLSb_X41LcIUGtqwB-g8/exec"
+# Вставьте вашу сохраненную ссылку из Apps Script
+WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwqvbMw4s9OdMgdnNZUJNl8oVKvLIYijh65FzU-5DGkTAHjVNPYkTYV5_oYtHF6Rhmq/exec"
 
 @st.cache_data(ttl=15)
 def load_all_data():
@@ -44,7 +44,7 @@ def load_all_data():
             df_r.columns = df_r.columns.str.strip()
             df_r['Загрузка'] = df_r['Загрузка'].astype(str).str.strip()
         except Exception:
-            df_r = pd.DataFrame(columns=['Имя', 'Вес', 'Загрузка', 'Перед_Преднатяг_Витков', 'Перед_Сжатие', 'Перед_Отбой', 'Зад_Преднатяг', 'Зад_Отбой', 'Зад_Реальный_Сэг_мм', 'Причина_Текст'])
+            df_r = pd.DataFrame(columns=['Имя', 'Вес', 'Загрузка', 'Перед_Преднатяг_Витков', 'Перед_Сжатие', 'Перед_Отбой', 'Зад_Преднатяг', 'Зад_Отбой', 'Перед_Реальный_Сэг_мм', 'Зад_Реальный_Сэг_мм', 'Причина_Текст'])
             
         return df_b, df_r
     except Exception as e:
@@ -100,11 +100,11 @@ if df_base is not None:
             <span class="value-badge-blue">{b_p_tur} рис.</span>
         </div>
         <div class="value-container">
-            <span class="value-label">🔹 Гидравлика Сжатия (от полностью закрученного)</span>
+            <span class="value-label">🔹 Гидравлика Сжатия</span>
             <span class="value-badge-blue">{b_p_szh} щелч.</span>
         </div>
         <div class="value-container">
-            <span class="value-label">🔹 Гидравлика Отбоя (от полностью закрученного)</span>
+            <span class="value-label">🔹 ... Гидравлика Отбоя (от полностью закрученного)</span>
             <span class="value-badge-blue">{b_p_otb} щелч.</span>
         </div>
     </div>
@@ -115,11 +115,11 @@ if df_base is not None:
     <div class="shock-card">
         <h3>⚙️ Задний амортизатор</h3>
         <div class="value-container">
-            <span class="value-label">🔹 Преднатяг пружины (от полностью открученного)</span>
+            <span class="value-label">🔹 ... Преднатяг пружины</span>
             <span class="value-badge-green">{b_z_pred} щелч.</span>
         </div>
         <div class="value-container">
-            <span class="value-label">🔹 Гидравлика Отбоя (от полностью закрученного)</span>
+            <span class="value-label">🔹 ... ... Гидравлика Отбоя (от полностью закрученного)</span>
             <span class="value-badge-green">{b_z_otb} щелч.</span>
         </div>
     </div>
@@ -134,11 +134,14 @@ if df_base is not None:
     
     if not matching_reviews.empty:
         for _, r_row in matching_reviews.iterrows():
+            # Защита от сдвигов: проверяем наличие новых колонок сэга
+            p_s = r_row['Перед_Реальный_Сэг_мм'] if 'Перед_Реальный_Сэг_мм' in df_reviews.columns else "58"
+            z_s = r_row['Зад_Реальный_Сэг_мм'] if 'Зад_Реальный_Сэг_мм' in df_reviews.columns else "60"
             st.markdown(f"""
             <div class="user-review">
                 <div class="review-header">🏍️ Райдер: {r_row['Имя']} | Категория: {rounded_weight} кг | {loading_mode}</div>
-                <p class="sub-text">🔹 <b>Передняя вилка:</b> Преднатяг: {r_row['Перед_Преднатяг_Витков']} рис. , Сжатие: {r_row['Перед_Сжатие']} щелч. , Отбой: {r_row['Перед_Отбой']} щелч.</p>
-                <p class="sub-text">🔹 <b>Задний аморт:</b> Преднатяг: {r_row['Зад_Преднатяг']} щелч. , Отбой: {r_row['Зад_Отбой']} щелч. &nbsp;|&nbsp; 📊 Реальный Сэг: {r_row['Зад_Реальный_Сэг_мм']} мм</p>
+                <p class="sub-text">🔹 <b>Передняя вилка:</b> Преднатяг: {r_row['Перед_Преднатяг_Витков']} рис. , Сжатие: {r_row['Перед_Сжатие']} щелч. , Отбой: {r_row['Перед_Отбой']} щелч. &nbsp;|&nbsp; 📊 Сэг: {p_s} мм</p>
+                <p class="sub-text">🔹 <b>Задний аморт:</b> Преднатяг: {r_row['Зад_Преднатяг']} щелч. , Отбой: {r_row['Зад_Отбой']} щелч. &nbsp;|&nbsp; 📊 Сэг: {z_s} мм</p>
                 <p style="margin-top: 8px; color: #FF9F1C;">💬 <b>Почему изменил:</b> {r_row['Причина_Текст']}</p>
             </div>
             """, unsafe_allow_html=True)
@@ -155,48 +158,39 @@ if df_base is not None:
             u_p_szh = st.number_input("Сжатие (щелчки)", value=int(b_p_szh) if b_p_szh.isdigit() else 12, step=1, key="up2")
             u_p_otb = st.number_input("Отбой (щелчки)", value=int(b_p_otb) if b_p_otb.isdigit() else 9, step=1, key="up3")
             u_p_seg = st.number_input("Реальный Сэг переда (мм)", value=58, step=1, key="up4")
-
         with col2:
             st.markdown("**🪐 Ваш задний амортизатор:**")
             u_z_pred = st.number_input("Преднатяг (щелчки)", value=int(b_z_pred) if b_z_pred.isdigit() else 17, step=1, key="uz1")
             u_z_otb = st.number_input("Отбой (щелчки)", value=int(b_z_otb) if b_z_otb.isdigit() else 17, step=1, key="uz2")
-            u_z_seg = st.number_input("Реальный Сэг зада (мм)", value=60, step=1, key="uz3")
+            u_z_seg = st.number_input("Замеренный Сэг зада (мм)", value=60, step=1, key="uz3")
             
         user_comment = st.text_area("Почему вы выбрали такие настройки?", placeholder="Например: Базовый преднатяг вилки показался мягким...")
         
-        if st.button("🚀 Опубликовать сетап в приложении"):
+                if st.button("🚀 Опубликовать сетап в приложении"):
             if not user_name.strip() or not user_comment.strip():
                 st.error("Заполните ваше имя и причину изменений перед отправкой.")
             elif WEB_APP_URL == "СЮДА_ВСТАВЬТЕ_ВАШУ_ССЫЛКУ_ИЗ_APPS_SCRIPT":
                 st.error("Настройте скрипт отправки в Google Таблицу.")
             else:
                 payload = {
-                    "name": str(user_name), 
-                    "weight": str(rounded_weight), 
-                    "mode": str(loading_mode),
-                    "p_seg": str(u_p_tur), 
-                    "p_szh": str(u_p_szh), 
-                    "p_otb": str(u_p_otb),
-                    "z_pred": str(u_z_pred), 
-                    "z_otb": str(u_z_otb), 
-                    "z_seg": str(u_z_seg),
-                    "text": f"Замеренный Сэг переда: {u_p_seg} мм. " + str(user_comment)
+                    "name": str(user_name), "weight": str(rounded_weight), "mode": str(loading_mode),
+                    "p_seg": str(u_p_tur), "p_szh": str(u_p_szh), "p_otb": str(u_p_otb),
+                    "z_pred": str(u_z_pred), "z_otb": str(u_z_otb), 
+                    "p_real_seg": str(u_p_seg), "z_seg": str(u_z_seg),
+                    "text": str(user_comment)
                 }
                 try:
                     res = requests.post(WEB_APP_URL, json=payload)
                     if res.status_code == 200:
-                        # Сначала принудительно очищаем кэш памяти приложения
                         st.cache_data.clear()
-                        # Показываем красивое зеленое уведомление об успехе
                         st.success("✅ Отзыв успешно опубликован! Сетап мгновенно добавлен в базу.")
-                        # Железобетонно и мгновенно перезапускаем экран, чтобы отзыв появился в ленте
                         st.rerun()
                     else:
                         st.error("Ошибка сервера при отправке.")
                 except Exception:
                     st.error("Не удалось связаться с базой данных.")
 
-        # Раздел стандартных шпаргалок и руководств
+    # Раздел стандартных шпаргалок и руководств
     st.header("📖 Руководство: Как правильно крутить?")
     
     with st.expander("🛠️ ИНСТРУКЦИЯ ДЛЯ ПЕРЕДНЕЙ ВИЛКИ"):
