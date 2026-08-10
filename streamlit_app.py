@@ -24,7 +24,7 @@ URL_BASE = st.secrets["URL_BASE"]
 URL_REVIEWS = st.secrets["URL_REVIEWS"]
 
 # Вставьте сюда вашу ссылку из Apps Script, полученную на Шаге 2
-WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwMijFw9GTaAIxg391IMZ3EbqcIqeuKDLeG36cP1Yjl7Rou6Cr6GeQ5MUzg4EV64Ry7/exec"
+WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzwgYieaAX5vFI4rTiGGgv7Utng82NPqfKmXEWBwjyE_ji6HLSb_X41LcIUGtqwB-g8/exec"
 
 @st.cache_data(ttl=15) # Уменьшил время кэша до 15 секунд для быстрых тестов
 def load_all_data():
