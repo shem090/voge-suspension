@@ -98,35 +98,35 @@ if df_base is not None:
 
     st.header("🛠️ Рекомендуемые настройки")
     
-        # Передняя вилка — компактный вид
+        # Передняя вилка — компактный вид с переносом подсказок
     st.markdown(f"""
     <div class="fork-card">
         <div class="card-title">⚙️ Передняя вилка</div>
         <div class="value-container">
-            <span class="value-label">• Преднатяг пружины</span>
+            <span class="value-label">• Преднатяг пружины<br><small style="color: #888888; font-style: italic;">(по рискам)</small></span>
             <span class="value-badge-blue">{b_p_tur} рис.</span>
         </div>
         <div class="value-container">
-            <span class="value-label"><i>• Гидравлика Сжатия</i></span>
+            <span class="value-label">• Гидравлика Сжатия<br><small style="color: #888888; font-style: italic;">(от полностью закрученного)</small></span>
             <span class="value-badge-blue">{b_p_szh} щелч.</span>
         </div>
         <div class="value-container">
-            <span class="value-label"><i>• Гидравлика Отбоя (от полностью закрученного)</i></span>
+            <span class="value-label">• Гидравлика Отбоя<br><small style="color: #888888; font-style: italic;">(от полностью закрученного)</small></span>
             <span class="value-badge-blue">{b_p_otb} щелч.</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-        # Задний амортизатор — компактный вид
+            # Задний амортизатор — компактный вид с переносом подсказок
     st.markdown(f"""
     <div class="shock-card">
         <div class="card-title">⚙️ Задний амортизатор</div>
         <div class="value-container">
-            <span class="value-label">• Преднатяг пружины (от полностью открученного)</span>
+            <span class="value-label">• Преднатяг пружины<br><small style="color: #888888; font-style: italic;">(от полностью открученного)</small></span>
             <span class="value-badge-green">{b_z_pred} щелч.</span>
         </div>
         <div class="value-container">
-            <span class="value-label"><i>• Гидравлика Отбоя (от полностью закрученного)</i></span>
+            <span class="value-label">• Гидравлика Отбоя<br><small style="color: #888888; font-style: italic;">(от полностью закрученного)</small></span>
             <span class="value-badge-green">{b_z_otb} щелч.</span>
         </div>
     </div>
