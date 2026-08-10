@@ -154,11 +154,13 @@ if df_base is not None:
             u_p_tur = st.number_input("Преднатяг (риски)", value=float(b_p_tur) if b_p_tur.replace('.', '', 1).isdigit() else 3.0, step=0.5, key="up1")
             u_p_szh = st.number_input("Сжатие (щелчки)", value=int(b_p_szh) if b_p_szh.isdigit() else 12, step=1, key="up2")
             u_p_otb = st.number_input("Отбой (щелчки)", value=int(b_p_otb) if b_p_otb.isdigit() else 9, step=1, key="up3")
+            u_p_seg = st.number_input("Реальный Сэг переда (мм)", value=58, step=1, key="up4")
+
         with col2:
             st.markdown("**🪐 Ваш задний амортизатор:**")
             u_z_pred = st.number_input("Преднатяг (щелчки)", value=int(b_z_pred) if b_z_pred.isdigit() else 17, step=1, key="uz1")
             u_z_otb = st.number_input("Отбой (щелчки)", value=int(b_z_otb) if b_z_otb.isdigit() else 17, step=1, key="uz2")
-            u_z_seg = st.number_input("Замеренный Сэг (мм)", value=60, step=1, key="uz3")
+            u_z_seg = st.number_input("Реальный Сэг зада (мм)", value=60, step=1, key="uz3")
             
         user_comment = st.text_area("Почему вы выбрали такие настройки?", placeholder="Например: Базовый преднатяг вилки показался мягким...")
         
@@ -169,10 +171,16 @@ if df_base is not None:
                 st.error("Настройте скрипт отправки в Google Таблицу.")
             else:
                 payload = {
-                    "name": str(user_name), "weight": str(rounded_weight), "mode": str(loading_mode),
-                    "p_seg": str(u_p_tur), "p_szh": str(u_p_szh), "p_otb": str(u_p_otb),
-                    "z_pred": str(u_z_pred), "z_otb": str(u_z_otb), "z_seg": str(u_z_seg),
-                    "text": str(user_comment)
+                    "name": str(user_name), 
+                    "weight": str(rounded_weight), 
+                    "mode": str(loading_mode),
+                    "p_seg": str(u_p_tur), 
+                    "p_szh": str(u_p_szh), 
+                    "p_otb": str(u_p_otb),
+                    "z_pred": str(u_z_pred), 
+                    "z_otb": str(u_z_otb), 
+                    "z_seg": str(u_z_seg),
+                    "text": f"Замеренный Сэг переда: {u_p_seg} мм. " + str(user_comment)
                 }
                 try:
                     res = requests.post(WEB_APP_URL, json=payload)
