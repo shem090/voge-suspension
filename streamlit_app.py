@@ -10,19 +10,26 @@ st.markdown("""
     <style>
     .main { background-color: #121212; color: #FFFFFF; }
     .stApp { background-color: #121212; }
-    .fork-card { background-color: #1A2332; padding: 20px; border-radius: 12px; border-left: 5px solid #3A86FF; margin-bottom: 20px; }
-    .shock-card { background-color: #1A2E26; padding: 20px; border-radius: 12px; border-left: 5px solid #38B000; margin-bottom: 20px; }
+    
+    /* Компактные карточки подвески */
+    .fork-card { background-color: #1A2332; padding: 14px; border-radius: 10px; border-left: 5px solid #3A86FF; margin-bottom: 12px; }
+    .shock-card { background-color: #1A2E26; padding: 14px; border-radius: 10px; border-left: 5px solid #38B000; margin-bottom: 12px; }
+    
+    /* Уменьшенные шрифты заголовков в карточках */
+    .card-title { font-size: 1.15em; font-weight: bold; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+    
     .user-review { background-color: #1E1E1E; border: 1px solid #2D2D2D; padding: 15px; border-radius: 8px; margin-bottom: 12px; }
     .review-header { color: #888888; font-size: 0.85em; font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid #2D2D2D; padding-bottom: 5px; }
     .orange-box { background-color: #2D2214; border: 1px solid #FF9F1C; padding: 15px; border-radius: 8px; color: #FF9F1C; margin: 10px 0; }
     .sub-text { font-size: 0.9em; color: #B0B0B0; margin: 2px 0; }
     
-    /* Стили для новых информативных блоков цифр */
-    .value-container { display: flex; align-items: center; margin: 12px 0; }
-    .value-label { flex-grow: 1; font-size: 1.1em; color: #E0E0E0; }
-    .value-badge-blue { background-color: #3A86FF; color: #FFFFFF; font-size: 1.2em; font-weight: bold; padding: 4px 14px; border-radius: 6px; min-width: 90px; text-align: center; }
-    .value-badge-green { background-color: #38B000; color: #FFFFFF; font-size: 1.2em; font-weight: bold; padding: 4px 14px; border-radius: 6px; min-width: 90px; text-align: center; }
+    /* Оптимизированные контейнеры цифр для мобилок */
+    .value-container { display: flex; align-items: center; justify-content: space-between; margin: 8px 0; min-height: 36px; }
+    .value-label { font-size: 0.95em; color: #E0E0E0; padding-right: 10px; line-height: 1.2; }
+    .value-badge-blue { background-color: #3A86FF; color: #FFFFFF; font-size: 1.05em; font-weight: bold; padding: 6px 12px; border-radius: 6px; min-width: 80px; text-align: center; white-space: nowrap; }
+    .value-badge-green { background-color: #38B000; color: #FFFFFF; font-size: 1.05em; font-weight: bold; padding: 6px 12px; border-radius: 6px; min-width: 80px; text-align: center; white-space: nowrap; }
     </style>
+
 """, unsafe_allow_html=True)
 
 # Ссылки из Секретов Streamlit
