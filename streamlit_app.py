@@ -37,7 +37,7 @@ URL_BASE = st.secrets["URL_BASE"]
 URL_REVIEWS = st.secrets["URL_REVIEWS"]
 
 # Вставьте сюда вашу сохраненную ссылку из Apps Script
-WEB_APP_URL = "https://script.google.com/macros/s/AKfycbz37jxlvf9sfNJfhIjEnmOtPxsgQx8XwzxVSPyoWATchh96NWH6yQ7xOgtiG_d1qv5n/exec"
+WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzwCbdFFRBzbapPVwR5UxYAcWnPsQDlquFyBhlMRnoCMUPYd8vF1KdjJF65Y8KrlONM/exec"
 
 @st.cache_data(ttl=15)
 def load_all_data():
@@ -164,10 +164,8 @@ if df_base is not None:
             if st.button("⬅️ Назад", key="btn_prev", use_container_width=True):
                 st.session_state.review_index = (st.session_state.review_index - 1) % total_reviews
                 st.rerun()
-                # Компактная панель навигации (Назад | Лайк | Вперед) с уникальными ключами
+                # Компактная панель навигации (Назад | Лайк-Отмена | Вперед)
         nav_col1, nav_col2, nav_col3 = st.columns([1, 1.3, 1])
-        
-        # Генерируем уникальный суффикс для ключей на основе текущих параметров
         unique_suffix = f"{rounded_weight}_{loading_mode.replace(' ', '_')}"
         
         with nav_col1:
@@ -176,27 +174,31 @@ if df_base is not None:
                 st.rerun()
                 
         with nav_col2:
-            # Создаем уникальный текстовый ключ для этого отзыва
+            # Создаем уникальный текстовый ключ для проверки лайка конкретного отзыва
             like_id = f"liked_{r_row['Имя']}_{unique_suffix}"
-            
-            # Проверяем в памяти, ставил ли человек уже лайк
             has_liked = st.session_state.get(like_id, False)
             
-            # Если лайк уже стоит, меняем текст кнопки
-            btn_text = f"❤️ Полезно ({likes_count})" if not has_liked else f"💖 Вы лайкнули ({likes_count})"
+            # Меняем текст и иконку кнопки в зависимости от того, нажат лайк или нет
+            btn_text = f"❤️ Полезно ({likes_count})" if not has_liked else f"💖 Отменить лайк ({likes_count})"
             
             if st.button(btn_text, key=f"like_{st.session_state.review_index}_{likes_count}_{unique_suffix}", use_container_width=True):
-                if has_liked:
-                    st.warning("⚠️ Вы уже проголосовали!")
-                elif WEB_APP_URL != "СЮДА_ВСТАВЬТЕ_ВАШУ_ССЫЛКУ_ИЗ_APPS_SCRIPT":
+                if WEB_APP_URL != "СЮДА_ВСТАВЬТЕ_ВАШУ_ССЫЛКУ_ИЗ_APPS_SCRIPT":
                     try:
-                        requests.post(WEB_APP_URL, json={"action": "like", "name": str(r_row['Имя'])})
-                        st.session_state[like_id] = True
-                        st.cache_data.clear()
-                        st.toast(f"Вы круты! Лайк для {r_row['Имя']} успешно учтен 💥")
+                        if not has_liked:
+                            # 1. СИТУАЦИЯ: Лайка нет -> Ставим лайк (+1 в базу)
+                            requests.post(WEB_APP_URL, json={"action": "like", "name": str(r_row['Имя'])})
+                            st.session_state[like_id] = True
+                            st.toast(f"Вы круты! Лайк для {r_row['Имя']} учтен 💥")
+                        else:
+                            # 2. СИТУАЦИЯ: Лайк уже есть -> Снимаем лайк (-1 из базы)
+                            requests.post(WEB_APP_URL, json={"action": "unlike", "name": str(r_row['Имя'])})
+                            st.session_state[like_id] = False
+                            st.toast(f"Лайк для {r_row['Имя']} успешно отменен ↩️")
+                        
+                        st.cache_data.clear() # Сбрасываем кэш, чтобы обновить цифру
                         st.rerun()
                     except Exception:
-                        st.error("Ошибка связи при отправке лайка.")
+                        st.error("Ошибка связи с сервером.")
                         
         with nav_col3:
             if st.button("Вперед ➡️", key=f"btn_next_{unique_suffix}", use_container_width=True):
