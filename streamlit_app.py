@@ -134,68 +134,87 @@ if df_base is not None:
     if b_notes and b_notes != "nan" and b_notes.strip() != "":
         st.warning(f"📝 **Памятка:** {b_notes}")
 
-        # ==================== ВЫВОД ОТЗЫВОВ КЛУБА (СПИСОК СТОЛБИКОМ) ====================
+           # ==================== ВЫВОД ОТЗЫВОВ КЛУБА (КАРУСЕЛЬ С ЛАЙКОМ НАВЕРХУ) ====================
     st.header("👥 Живой опыт других владельцев")
     matching_reviews = df_reviews[(df_reviews['Вес'] == str(rounded_weight)) & (df_reviews['Загрузка'] == loading_mode)]
     
     if not matching_reviews.empty:
-        # Пробегаем циклом по всем найденным отзывам и выводим их один за другим
-        for idx, r_row in matching_reviews.iterrows():
-            p_s = r_row['Перед_Реальный_Сэг_мм'] if 'Перед_Реальный_Сэг_мм' in df_reviews.columns else "58"
-            z_s = r_row['Зад_Реальный_Сэг_мм'] if 'Зад_Реальный_Сэг_мм' in df_reviews.columns else "60"
+        total_reviews = len(matching_reviews)
+        
+        # Инициализируем индекс текущего отзыва в памяти приложения
+        if 'review_index' not in st.session_state:
+            st.session_state.review_index = 0
             
-            # Считываем лайки из 12-го столбца таблицы
-            likes_count = r_row.get('Лайки', '0')
-            if str(likes_count) == 'nan' or not str(likes_count).isdigit():
-                likes_count = '0'
+        if st.session_state.review_index >= total_reviews:
+            st.session_state.review_index = 0
 
-            # Уникальный суффикс для кнопок лайка конкретного отзыва в списке
-            unique_suffix = f"{rounded_weight}_{loading_mode.replace(' ', '_')}_{idx}"
-            like_id = f"liked_{r_row['Имя']}_{unique_suffix}"
-            has_liked = st.session_state.get(like_id, False)
-            btn_text = f"❤️ Полезно ({likes_count})" if not has_liked else f"💖 Отменить лайк ({likes_count})"
+        r_row = matching_reviews.iloc[st.session_state.review_index]
+        
+        # Считываем количество лайков из 12-го столбца таблицы
+        likes_count = r_row.get('Лайки', '0')
+        if str(likes_count) == 'nan' or not str(likes_count).isdigit():
+            likes_count = '0'
 
-            # Вывод самой карточки отзыва
-            st.markdown(f"""
-            <div class="user-review" style="margin-bottom: 5px;">
-                <div class="review-header">🏍️ Райдер: {r_row['Имя']} | {rounded_weight} кг | {loading_mode}</div>
-                <p class="sub-text" style="line-height: 1.5;">
-                    <b>⚙️ Передняя вилка:</b>
-                    <br>• Преднатяг: {r_row['Перед_Преднатяг_Витков']} рис.
-                    <br>• Сжатие: {r_row['Перед_Сжатие']} щелч.
-                    <br>• Отбой: {r_row['Перед_Отбой']} щелч.
-                    <br><span style="color: #888888;">📊 Реальный Сэг переда: {p_s} мм</span>
-                    <br><br>
-                    <b>⚙️ Задний амортизатор:</b>
-                    <br>• Преднатяг: {r_row['Зад_Преднатяг']} щелч.
-                    <br>• Отбой: {r_row['Зад_Отбой']} щелч.
-                    <br><span style="color: #888888;">📊 Реальный Сэг зада: {z_s} мм</span>
-                </p>
-                <p style="margin-top: 12px; font-size: 0.9em; color: #FF9F1C; line-height: 1.3; border-top: 1px solid #2D2D2D; padding-top: 8px; margin-bottom: 5px;">
-                    💬 <b>Почему изменил:</b> {r_row['Причина_Текст']}
-                </p>
+        # Уникальный суффикс для кнопок
+        unique_suffix = f"{rounded_weight}_{loading_mode.replace(' ', '_')}"
+        like_id = f"liked_{r_row['Имя']}_{unique_suffix}"
+        has_liked = st.session_state.get(like_id, False)
+        btn_text = f"❤️ Полезно ({likes_count})" if not has_liked else f"💖 Отменить лайк ({likes_count})"
+
+        # 1. ПЕРВЫЙ УРОВЕНЬ: КНОПКА ЛАЙКА НА САМОМ ВЕРХУ (на всю ширину)
+        like_btn_key = f"like_btn_{unique_suffix}_{st.session_state.review_index}_{likes_count}"
+        if st.button(btn_text, key=like_btn_key, use_container_width=True):
+            try:
+                if not has_liked:
+                    requests.post(WEB_APP_URL, json={"action": "like", "name": str(r_row['Имя']), "review_text": str(r_row['Причина_Текст'])})
+                    st.session_state[like_id] = True
+                    st.toast(f"Вы круты! Лайк для {r_row['Имя']} учтен 💥")
+                else:
+                    requests.post(WEB_APP_URL, json={"action": "unlike", "name": str(r_row['Имя']), "review_text": str(r_row['Причина_Текст'])})
+                    st.session_state[like_id] = False
+                    st.toast(f"Лайк для {r_row['Имя']} успешно отменен ↩️")
+                st.cache_data.clear()
+                st.rerun()
+            except Exception:
+                st.error("Ошибка связи с сервером таблицы.")
+
+        # 2. ВТОРОЙ УРОВЕНЬ: КНОПКИ ЛИСТАНИЯ (НАЗАД И ВПЕРЕД СТРОГО ПОД ЛАЙКОМ)
+        # Оставляем их независимыми строками, чтобы они аккуратно ложились на мобильном
+        if st.button("⬅️ Назад", key=f"btn_prev_{unique_suffix}_{st.session_state.review_index}", use_container_width=True):
+            st.session_state.review_index = (st.session_state.review_index - 1) % total_reviews
+            st.rerun()
+                
+        if st.button("Вперед ➡️", key=f"btn_next_{unique_suffix}_{st.session_state.review_index}", use_container_width=True):
+            st.session_state.review_index = (st.session_state.review_index + 1) % total_reviews
+            st.rerun()
+
+        # 3. ТРЕТИЙ УРОВЕНЬ: САМА КАРТОЧКА ОТЗЫВА
+        p_s = r_row['Перед_Реальный_Сэг_мм'] if 'Перед_Реальный_Сэг_мм' in df_reviews.columns else "58"
+        z_s = r_row['Зад_Реальный_Сэг_мм'] if 'Зад_Реальный_Сэг_мм' in df_reviews.columns else "60"
+        
+        st.markdown(f"""
+        <div class="user-review" style="margin-top: 15px;">
+            <div class="review-header" style="display: flex; justify-content: space-between;">
+                <span>🏍️ Райдер: {r_row['Имя']} | {rounded_weight} кг | {loading_mode}</span>
+                <span style="color: #FF9F1C; font-weight: bold;">Отзыв {st.session_state.review_index + 1} из {total_reviews}</span>
             </div>
-            """, unsafe_allow_html=True)
-
-            # Кнопка Лайка/Отмены жестко привязана снизу к своей карточке
-            if st.button(btn_text, key=f"like_list_{unique_suffix}_{likes_count}", use_container_width=True):
-                try:
-                    if not has_liked:
-                        requests.post(WEB_APP_URL, json={"action": "like", "name": str(r_row['Имя']), "review_text": str(r_row['Причина_Текст'])})
-                        st.session_state[like_id] = True
-                        st.toast(f"Вы круты! Лайк для {r_row['Имя']} учтен 💥")
-                    else:
-                        requests.post(WEB_APP_URL, json={"action": "unlike", "name": str(r_row['Имя']), "review_text": str(r_row['Причина_Текст'])})
-                        st.session_state[like_id] = False
-                        st.toast(f"Лайк для {r_row['Имя']} успешно отменен ↩️")
-                    st.cache_data.clear()
-                    st.rerun()
-                except Exception:
-                    st.error("Ошибка связи с сервером таблицы.")
-            
-            # Небольшой визуальный разделитель между карточками в списке
-            st.markdown("<div style='margin-bottom: 25px;'></div>", unsafe_allow_html=True)
-            
+            <p class="sub-text" style="line-height: 1.5;">
+                <b>⚙️ Передняя вилка:</b>
+                <br>• Преднатяг: {r_row['Перед_Преднатяг_Витков']} рис.
+                <br>• Сжатие: {r_row['Перед_Сжатие']} щелч.
+                <br>• Отбой: {r_row['Перед_Отбой']} щелч.
+                <br><span style="color: #888888;">📊 Реальный Сэг переда: {p_s} мм</span>
+                <br><br>
+                <b>⚙️ Задний амортизатор:</b>
+                <br>• Преднатяг: {r_row['Зад_Преднатяг']} щелч.
+                <br>• Отбой: {r_row['Зад_Отбой']} щелч.
+                <br><span style="color: #888888;">📊 Реальный Сэг зада: {z_s} мм</span>
+            </p>
+            <p style="margin-top: 12px; font-size: 0.9em; color: #FF9F1C; line-height: 1.3; border-top: 1px solid #2D2D2D; padding-top: 8px;">
+                💬 <b>Почему изменил:</b> {r_row['Причина_Текст']}
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
     else:
         st.info("Альтернативных сетапов для этих параметров пока нет. Станьте первым!")
 
