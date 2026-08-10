@@ -26,24 +26,26 @@ URL_REVIEWS = "https://docs.google.com/spreadsheets/d/1v4sB4PlYPktvR67d69x0tzWjb
 # Вставьте сюда вашу ссылку из Apps Script, полученную на Шаге 2
 WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwMijFw9GTaAIxg391IMZ3EbqcIqeuKDLeG36cP1Yjl7Rou6Cr6GeQ5MUzg4EV64Ry7/exec"
 
-@st.cache_data(ttl=30)
+@st.cache_data(ttl=15) # Уменьшил время кэша до 15 секунд для быстрых тестов
 def load_all_data():
     try:
-        df_b = pd.read_csv(URL_BASE)
+        # Принудительно читаем в кодировке UTF-8 и игнорируем мелкие ошибки строк
+        df_b = pd.read_csv(URL_BASE, encoding='utf-8', on_bad_lines='skip')
         df_b.columns = df_b.columns.str.strip()
         df_b['Загрузка'] = df_b['Загрузка'].astype(str).str.strip()
         
         try:
-            df_r = pd.read_csv(URL_REVIEWS)
+            df_r = pd.read_csv(URL_REVIEWS, encoding='utf-8', on_bad_lines='skip')
             df_r.columns = df_r.columns.str.strip()
-            df_r['Загрузка'] = df_r['Загрузка'].astype(str).str.strip()
+            if 'Загрузка' in df_r.columns:
+                df_r['Загрузка'] = df_r['Загрузка'].astype(str).str.strip()
         except Exception:
-            # Структура по умолчанию, если лист отзывов пустой
             df_r = pd.DataFrame(columns=['Имя', 'Вес', 'Загрузка', 'Перед_Преднатяг_Витков', 'Перед_Сжатие', 'Перед_Отбой', 'Зад_Преднатяг', 'Зад_Отбой', 'Зад_Реальный_Сэг_мм', 'Причина_Текст'])
             
         return df_b, df_r
-    except Exception:
-        st.error("Ошибка синхронизации с базой данных Google Таблиц.")
+    except Exception as e:
+        # Если снова будет ошибка, приложение выведет её точный технический текст на экран
+        st.error(f"Техническая ошибка: {str(e)}")
         return None, None
 
 df_base, df_reviews = load_all_data()
