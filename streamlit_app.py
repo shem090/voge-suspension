@@ -19,33 +19,28 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Ссылки для чтения листов вашей таблицы
+# Ссылки из Secrets и Apps Script
 URL_BASE = st.secrets["URL_BASE"]
 URL_REVIEWS = st.secrets["URL_REVIEWS"]
+WEB_APP_URL = "СЮДА_ВСТАВЬТЕ_ВАШУ_ССЫЛКУ_ИЗ_APPS_SCRIPT"
 
-# Вставьте сюда вашу ссылку из Apps Script, полученную на Шаге 2
-WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzwgYieaAX5vFI4rTiGGgv7Utng82NPqfKmXEWBwjyE_ji6HLSb_X41LcIUGtqwB-g8/exec"
-
-@st.cache_data(ttl=15) # Уменьшил время кэша до 15 секунд для быстрых тестов
+@st.cache_data(ttl=15)
 def load_all_data():
     try:
-        # Принудительно читаем в кодировке UTF-8 и игнорируем мелкие ошибки строк
-        df_b = pd.read_csv(URL_BASE, encoding='utf-8', on_bad_lines='skip')
+        df_b = pd.read_csv(URL_BASE)
         df_b.columns = df_b.columns.str.strip()
-        df_b['Загрузка'] = df_b['Загрузка'].astype(str).str.strip()
+        df_b['mode'] = df_b['mode'].astype(str).str.strip()
         
         try:
-            df_r = pd.read_csv(URL_REVIEWS, encoding='utf-8', on_bad_lines='skip')
+            df_r = pd.read_csv(URL_REVIEWS)
             df_r.columns = df_r.columns.str.strip()
-            if 'Загрузка' in df_r.columns:
-                df_r['Загрузка'] = df_r['Загрузка'].astype(str).str.strip()
+            df_r['Загрузка'] = df_r['Загрузка'].astype(str).str.strip()
         except Exception:
             df_r = pd.DataFrame(columns=['Имя', 'Вес', 'Загрузка', 'Перед_Преднатяг_Витков', 'Перед_Сжатие', 'Перед_Отбой', 'Зад_Преднатяг', 'Зад_Отбой', 'Зад_Реальный_Сэг_мм', 'Причина_Текст'])
             
         return df_b, df_r
     except Exception as e:
-        # Если снова будет ошибка, приложение выведет её точный технический текст на экран
-        st.error(f"Техническая ошибка: {str(e)}")
+        st.error(f"Ошибка синхронизации: {str(e)}")
         return None, None
 
 df_base, df_reviews = load_all_data()
@@ -57,33 +52,33 @@ if df_base is not None:
     # Блок ввода параметров
     st.header("📋 Ваши параметры")
     user_weight = st.number_input("Вес в экипировке, кг", min_value=65, max_value=110, value=90, step=1)
-    modes = df_base['Загрузка'].unique().tolist()
+    
+    modes = df_base['mode'].unique().tolist()
     loading_mode = st.selectbox("Режим загрузки", modes)
 
     rounded_weight = int(round(user_weight / 5.0) * 5)
     rounded_weight = max(70, min(rounded_weight, 105))
     st.info(f"Ближайшая категория в базе: {rounded_weight} кг.")
 
-    filtered_df = df_base[(df_base['Вес (кг)'] == rounded_weight) & (df_base['Загрузка'] == loading_mode)]
-
-    b_p_szh, b_p_otb, b_p_tur = 12, 9, 3
-    b_z_pred, b_z_otb = 17, 17
+    # Фильтруем строку из базы данных
+    filtered_df = df_base[(df_base['weight'] == rounded_weight) & (df_base['mode'] == loading_mode)]
 
     if not filtered_df.empty:
-                     # Считываем данные напрямую по индексам ячеек в строке (2=Сжатие, 3=Отбой, 4=Риски, 5=Преднатяг зад)
-        b_p_szh = int(row.values[2])   # Столбец C
-        b_p_otb = int(row.values[3])   # Столбец D
-        b_p_tur = row.values[4]        # Столбец E (наши риски)
-        b_z_pred = int(row.values[5])  # Столбец F
-        b_z_otb = int(row.values[6])   # Столбец G
-
+        # Извлекаем данные через словарь, чтобы исключить любые ошибки iloc
+        row = filtered_df.to_dict(orient='records')[0]
+        
+        b_p_szh = int(row['comp_f'])
+        b_p_otb = int(row['reb_f'])
+        b_p_tur = row['preload_f']
+        b_z_pred = int(row['preload_r'])
+        b_z_otb = int(row['reb_r'])
 
         st.header("🛠️ Рекомендуемые настройки")
         
         st.markdown(f"""
         <div class="fork-card">
             <h3>⚓ Передняя вилка</h3>
-            <p><b>Преднатяг пружины:</b> {b_p_tur} витков/оборотов (от полностью распущенного)</p>
+            <p><b>Преднатяг пружины:</b> {b_p_tur} рисок (от полностью распущенного)</p>
             <p><b>Гидравлика Сжатия:</b> {b_p_szh} кликов (от полностью закрученного)</p>
             <p><b>Гидравлика Отбоя:</b> {b_p_otb} кликов</p>
         </div>
@@ -97,12 +92,11 @@ if df_base is not None:
         </div>
         """, unsafe_allow_html=True)
         
-        if 'Личные заметки' in df_base.columns and pd.notna(row['Личные заметки']):
-            st.warning(f"📝 **Базовая памятка:** {row['Личные заметки']}")
+        if 'notes' in row and pd.notna(row['notes']) and str(row['notes']).strip() != "":
+            st.warning(f"📝 **Базовая памятка:** {row['notes']}")
 
     # ==================== ВЫВОД ОТЗЫВОВ КЛУБА ====================
     st.header("👥 Живой опыт других владельцев")
-    
     matching_reviews = df_reviews[(df_reviews['Вес'] == rounded_weight) & (df_reviews['Загрузка'] == loading_mode)]
     
     if not matching_reviews.empty:
@@ -110,7 +104,7 @@ if df_base is not None:
             st.markdown(f"""
             <div class="user-review">
                 <div class="review-header">🏍️ Райдер: {r_row['Имя']} | Категория: {rounded_weight} кг | {loading_mode}</div>
-                <p class="sub-text">🔹 <b>Передняя вилка:</b> Преднатяг: {r_row['Перед_Преднатяг_Витков']} об. , Сжатие: {r_row['Перед_Сжатие']} кл. , Отбой: {r_row['Перед_Отбой']} кл.</p>
+                <p class="sub-text">🔹 <b>Передняя вилка:</b> Преднатяг: {r_row['Перед_Преднатяг_Витков']} рис. , Сжатие: {r_row['Перед_Сжатие']} кл. , Отбой: {r_row['Перед_Отбой']} кл.</p>
                 <p class="sub-text">🔹 <b>Задний аморт:</b> Преднатяг: {r_row['Зад_Преднатяг']} кл. , Отбой: {r_row['Зад_Отбой']} кл. &nbsp;|&nbsp; 📊 Реальный Сэг: {r_row['Зад_Реальный_Сэг_мм']} мм</p>
                 <p style="margin-top: 8px; color: #FF9F1C;">💬 <b>Почему изменил:</b> {r_row['Причина_Текст']}</p>
             </div>
@@ -121,11 +115,10 @@ if df_base is not None:
     # ==================== УМНАЯ ФОРМА ОТПРАВКИ ОТЗЫВА ====================
     with st.expander("✍️ Добавить свой вариант настройки / Предложить изменения"):
         user_name = st.text_input("Ваш ник в чате / Имя", placeholder="Например: Voge_Rider_77")
-        
         col1, col2 = st.columns(2)
         with col1:
             st.markdown("**⚓ Ваша передняя вилка:**")
-            u_p_tur = st.number_input("Преднатяг (обороты гайки)", value=float(b_p_tur), step=0.5, key="up1")
+            u_p_tur = st.number_input("Преднатяг (риски)", value=float(b_p_tur), step=0.5, key="up1")
             u_p_szh = st.number_input("Сжатие (клики)", value=int(b_p_szh), step=1, key="up2")
             u_p_otb = st.number_input("Отбой (клики)", value=int(b_p_otb), step=1, key="up3")
         with col2:
@@ -139,7 +132,7 @@ if df_base is not None:
         if st.button("🚀 Опубликовать сетап в приложении"):
             if not user_name.strip() or not user_comment.strip():
                 st.error("Заполните ваше имя и причину изменений перед отправкой.")
-            elif WEB_APP_URL == "ПОКА_ПУСТО_ЗАМЕНИМ_ПОСЛЕ_РАЗВЕРТЫВАНИЯ":
+            elif WEB_APP_URL == "СЮДА_ВСТАВЬТЕ_ВАШУ_ССЫЛКУ_ИЗ_APPS_SCRIPT":
                 st.error("Настройте скрипт отправки в Google Таблицу.")
             else:
                 payload = {
@@ -162,4 +155,3 @@ if df_base is not None:
     st.header("📖 Теория и Шпаргалки")
     with st.expander("📊 Справочные данные ходов подвески Voge DS900X"):
         st.write("• **Ход передней вилки:** 194 мм &nbsp;|&nbsp; **Ход заднего амортизатора:** 198 мм")
-        st.write("• **Целевой правильный Сэг (SAG):** спереди ~58 мм, сзади ~60 мм. Это 30% от полного хода.")
