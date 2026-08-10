@@ -128,25 +128,32 @@ if df_base is not None:
     if b_notes and b_notes != "nan" and b_notes.strip() != "":
         st.warning(f"📝 **Базовая памятка:** {b_notes}")
 
-        # ==================== ВЫВОД ОТЗЫВОВ КЛУБА ====================
+            # ==================== ВЫВОД ОТЗЫВОВ КЛУБА ====================
     st.header("👥 Живой опыт других владельцев")
     matching_reviews = df_reviews[(df_reviews['Вес'] == str(rounded_weight)) & (df_reviews['Загрузка'] == loading_mode)]
     
     if not matching_reviews.empty:
         for _, r_row in matching_reviews.iterrows():
-            # Защита от сдвигов: проверяем наличие колонок сэга
+            # Защита от сдвигов: проверяем наличие новых колонок сэга
             p_s = r_row['Перед_Реальный_Сэг_мм'] if 'Перед_Реальный_Сэг_мм' in df_reviews.columns else "58"
             z_s = r_row['Зад_Реальный_Сэг_мм'] if 'Зад_Реальный_Сэг_мм' in df_reviews.columns else "60"
             
             st.markdown(f"""
             <div class="user-review">
                 <div class="review-header">🏍️ Райдер: {r_row['Имя']} | {rounded_weight} кг | {loading_mode}</div>
-                <p class="sub-text">
-                    <b>⚓ Вилка:</b> Пр: {r_row['Перед_Преднатяг_Витков']} рис. | Сж: {r_row['Перед_Сжатие']} щелч. | Отб: {r_row['Перед_Отбой']} щелч. <span style="color: #888888;">(Сэг: {p_s} мм)</span>
-                    <br>
-                    <b>🪐 Аморт:</b> Пр: {r_row['Зад_Преднатяг']} щелч. | Отб: {r_row['Зад_Отбой']} щелч. <span style="color: #888888;">(Сэг: {z_s} мм)</span>
+                <p class="sub-text" style="line-height: 1.5;">
+                    <b>⚓ Передняя вилка:</b>
+                    <br>• Преднатяг: {r_row['Перед_Преднатяг_Витков']} рис.
+                    <br>• Сжатие: {r_row['Перед_Сжатие']} щелч.
+                    <br>• Отбой: {r_row['Перед_Отбой']} щелч.
+                    <br><span style="color: #888888;">📊 Реальный Сэг переда: {p_s} мм</span>
+                    <br><br>
+                    <b>🪐 Задний амортизатор:</b>
+                    <br>• Преднатяг: {r_row['Зад_Преднатяг']} щелч.
+                    <br>• Отбой: {r_row['Зад_Отбой']} щелч.
+                    <br><span style="color: #888888;">📊 Реальный Сэг зада: {z_s} мм</span>
                 </p>
-                <p style="margin-top: 8px; font-size: 0.9em; color: #FF9F1C; line-height: 1.3;">
+                <p style="margin-top: 12px; font-size: 0.9em; color: #FF9F1C; line-height: 1.3; border-top: 1px solid #2D2D2D; padding-top: 8px;">
                     💬 <b>Почему изменил:</b> {r_row['Причина_Текст']}
                 </p>
             </div>
