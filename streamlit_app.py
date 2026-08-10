@@ -134,7 +134,7 @@ if df_base is not None:
     if b_notes and b_notes != "nan" and b_notes.strip() != "":
         st.warning(f"📝 **Памятка:** {b_notes}")
 
-           # ==================== ВЫВОД ОТЗЫВОВ КЛУБА (КАРУСЕЛЬ С ЛАЙКОМ НАВЕРХУ) ====================
+        # ==================== ВЫВОД ОТЗЫВОВ КЛУБА (КАРУСЕЛЬ С ЛАЙКОМ НАВЕРХУ) ====================
     st.header("👥 Живой опыт других владельцев")
     matching_reviews = df_reviews[(df_reviews['Вес'] == str(rounded_weight)) & (df_reviews['Загрузка'] == loading_mode)]
     
@@ -178,15 +178,20 @@ if df_base is not None:
             except Exception:
                 st.error("Ошибка связи с сервером таблицы.")
 
-        # 2. ВТОРОЙ УРОВЕНЬ: КНОПКИ ЛИСТАНИЯ (НАЗАД И ВПЕРЕД СТРОГО ПОД ЛАЙКОМ)
-        # Оставляем их независимыми строками, чтобы они аккуратно ложились на мобильном
+                # 2. ВТОРОЙ УРОВЕНЬ: КНОПКИ ЛИСТАНИЯ СТРОГО НА ОДНОЙ СТРОКЕ (Горизонтальный HTML-флекс)
+        st.markdown('<div style="display: flex; gap: 10px; width: 100%;">', unsafe_allow_html=True)
+        
+        # Кнопка НАЗАД занимает левую половину строки
         if st.button("⬅️ Назад", key=f"btn_prev_{unique_suffix}_{st.session_state.review_index}", use_container_width=True):
             st.session_state.review_index = (st.session_state.review_index - 1) % total_reviews
             st.rerun()
                 
+        # Кнопка ВПЕРЕД занимает правую половину строки
         if st.button("Вперед ➡️", key=f"btn_next_{unique_suffix}_{st.session_state.review_index}", use_container_width=True):
             st.session_state.review_index = (st.session_state.review_index + 1) % total_reviews
             st.rerun()
+            
+        st.markdown('</div>', unsafe_allow_html=True)
 
         # 3. ТРЕТИЙ УРОВЕНЬ: САМА КАРТОЧКА ОТЗЫВА
         p_s = r_row['Перед_Реальный_Сэг_мм'] if 'Перед_Реальный_Сэг_мм' in df_reviews.columns else "58"
