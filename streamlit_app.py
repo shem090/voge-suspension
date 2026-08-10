@@ -165,23 +165,39 @@ if df_base is not None:
         has_liked = st.session_state.get(like_id, False)
         btn_text = f"❤️ Полезно ({likes_count})" if not has_liked else f"💖 Отменить лайк ({likes_count})"
 
-        # Компактная панель навигации (только стрелки Назад и Вперед)
+        # 1. СНАЧАЛА КНОПКА ЛАЙКА (на всю ширину)
+        if st.button(btn_text, key=f"like_{st.session_state.review_index}_{likes_count}_{unique_suffix}", use_container_width=True):
+            try:
+                if not has_liked:
+                    requests.post(WEB_APP_URL, json={"action": "like", "name": str(r_row['Имя']), "review_text": str(r_row['Причина_Текст'])})
+                    st.session_state[like_id] = True
+                    st.toast(f"Вы круты! Лайк для {r_row['Имя']} учтен 💥")
+                else:
+                    requests.post(WEB_APP_URL, json={"action": "unlike", "name": str(r_row['Имя']), "review_text": str(r_row['Причина_Текст'])})
+                    st.session_state[like_id] = False
+                    st.toast(f"Лайк для {r_row['Имя']} успешно отменен ↩️")
+                st.cache_data.clear()
+                st.rerun()
+            except Exception:
+                st.error("Ошибка связи с сервером таблицы.")
+
+        # 2. ПОД НЕЙ ВПЕРЕД И НАЗАД НА ОДНОЙ СТРОКЕ (сверхкомпактные иконки)
         nav_col1, nav_col2 = st.columns(2)
         
-        if nav_col1.button("⬅️ Назад", key=f"btn_prev_{unique_suffix}", use_container_width=True):
+        if nav_col1.button("⬅️", key=f"btn_prev_{unique_suffix}", use_container_width=True):
             st.session_state.review_index = (st.session_state.review_index - 1) % total_reviews
             st.rerun()
                 
-        if nav_col2.button("Вперед ➡️", key=f"btn_next_{unique_suffix}", use_container_width=True):
+        if nav_col2.button("➡️", key=f"btn_next_{unique_suffix}", use_container_width=True):
             st.session_state.review_index = (st.session_state.review_index + 1) % total_reviews
             st.rerun()
 
-        # Вывод самого отзыва с интегрированным счетчиком страниц
-        p_s = r_row['Перед_Реальный_Сэг_мм'] if 'Перед_Реальный_Сэг_мм' in df_reviews.columns else "58"
+        # 3. САМА КАРТОЧКА ОТЗЫВА
+        p_s = r_row['Before_Реальный_Сэг_мм'] if 'Перед_Реальный_Сэг_мм' in df_reviews.columns else "58"
         z_s = r_row['Зад_Реальный_Сэг_мм'] if 'Зад_Реальный_Сэг_мм' in df_reviews.columns else "60"
         
         st.markdown(f"""
-        <div class="user-review">
+        <div class="user-review" style="margin-top: 10px;">
             <div class="review-header" style="display: flex; justify-content: space-between;">
                 <span>🏍️ Райдер: {r_row['Имя']} | {rounded_weight} кг | {loading_mode}</span>
                 <span style="color: #FF9F1C; font-weight: bold;">Отзыв {st.session_state.review_index + 1} из {total_reviews}</span>
@@ -197,6 +213,9 @@ if df_base is not None:
                 <br>• Преднатяг: {r_row['Зад_Преднатяг']} щелч.
                 <br>• Отбой: {r_row['Зад_Отбой']} щелч.
                 <br><span style="color: #888888;">📊 Реальный Сэг зада: {z_s} мм</span>
+            </p>
+            <p style="margin-top: 12px; font-size: 0.9em; color: #FF9F1C; line-height: 1.3; border-top: 1px solid #2D2D2D; padding-top: 8px;">
+                💬 <b>Почему изменил:</b> {r_row['Причина_Текст']}
             </p>
         </div>
         """, unsafe_allow_html=True)
