@@ -30,7 +30,7 @@ URL_BASE = st.secrets["URL_BASE"]
 URL_REVIEWS = st.secrets["URL_REVIEWS"]
 
 # Вставьте сюда вашу сохраненную ссылку из Apps Script
-WEB_APP_URL = "СЮДА_ВСТАВЬТЕ_ВАШУ_ССЫЛКУ_ИЗ_APPS_SCRIPT"
+WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwqvbMw4s9OdMgdnNZUJNl8oVKvLIYijh65FzU-5DGkTAHjVNPYkTYV5_oYtHF6Rhmq/exec"
 
 @st.cache_data(ttl=15)
 def load_all_data():
