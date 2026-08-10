@@ -29,8 +29,8 @@ st.markdown("""
 URL_BASE = st.secrets["URL_BASE"]
 URL_REVIEWS = st.secrets["URL_REVIEWS"]
 
-# Вставьте вашу сохраненную ссылку из Apps Script
-WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwqvbMw4s9OdMgdnNZUJNl8oVKvLIYijh65FzU-5DGkTAHjVNPYkTYV5_oYtHF6Rhmq/exec"
+# Вставьте сюда вашу сохраненную ссылку из Apps Script
+WEB_APP_URL = "СЮДА_ВСТАВЬТЕ_ВАШУ_ССЫЛКУ_ИЗ_APPS_SCRIPT"
 
 @st.cache_data(ttl=15)
 def load_all_data():
@@ -104,7 +104,7 @@ if df_base is not None:
             <span class="value-badge-blue">{b_p_szh} щелч.</span>
         </div>
         <div class="value-container">
-            <span class="value-label">🔹 ... Гидравлика Отбоя (от полностью закрученного)</span>
+            <span class="value-label">🔹 Гидравлика Отбоя (от полностью закрученного)</span>
             <span class="value-badge-blue">{b_p_otb} щелч.</span>
         </div>
     </div>
@@ -115,11 +115,11 @@ if df_base is not None:
     <div class="shock-card">
         <h3>⚙️ Задний амортизатор</h3>
         <div class="value-container">
-            <span class="value-label">🔹 ... Преднатяг пружины</span>
+            <span class="value-label">🔹 Преднатяг пружины</span>
             <span class="value-badge-green">{b_z_pred} щелч.</span>
         </div>
         <div class="value-container">
-            <span class="value-label">🔹 ... ... Гидравлика Отбоя (от полностью закрученного)</span>
+            <span class="value-label">🔹 Гидравлика Отбоя (от полностью закрученного)</span>
             <span class="value-badge-green">{b_z_otb} щелч.</span>
         </div>
     </div>
@@ -134,7 +134,6 @@ if df_base is not None:
     
     if not matching_reviews.empty:
         for _, r_row in matching_reviews.iterrows():
-            # Защита от сдвигов: проверяем наличие новых колонок сэга
             p_s = r_row['Перед_Реальный_Сэг_мм'] if 'Перед_Реальный_Сэг_мм' in df_reviews.columns else "58"
             z_s = r_row['Зад_Реальный_Сэг_мм'] if 'Зад_Реальный_Сэг_мм' in df_reviews.columns else "60"
             st.markdown(f"""
@@ -166,7 +165,7 @@ if df_base is not None:
             
         user_comment = st.text_area("Почему вы выбрали такие настройки?", placeholder="Например: Базовый преднатяг вилки показался мягким...")
         
-                if st.button("🚀 Опубликовать сетап в приложении"):
+        if st.button("🚀 Опубликовать сетап в приложении"):
             if not user_name.strip() or not user_comment.strip():
                 st.error("Заполните ваше имя и причину изменений перед отправкой.")
             elif WEB_APP_URL == "СЮДА_ВСТАВЬТЕ_ВАШУ_ССЫЛКУ_ИЗ_APPS_SCRIPT":
