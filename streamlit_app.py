@@ -185,7 +185,7 @@ if df_base is not None:
                     except Exception:
                         st.error("Ошибка связи с сервером.")
                         
-                with nav_col3:
+                        with nav_col3:
             if st.button("Вперед ➡️", key=f"btn_next_{unique_suffix}", use_container_width=True):
                 st.session_state.review_index = (st.session_state.review_index + 1) % total_reviews
                 st.rerun()
