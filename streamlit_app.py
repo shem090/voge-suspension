@@ -100,7 +100,7 @@ if df_base is not None:
             <span class="value-badge-blue">{b_p_tur} рис.</span>
         </div>
         <div class="value-container">
-            <span class="value-label">🔹 Гидравлика Сжатия</span>
+            <span class="value-label">🔹 Гидравлика Сжатия (от полностью закрученного)</span>
             <span class="value-badge-blue">{b_p_szh} щелч.</span>
         </div>
         <div class="value-container">
@@ -115,7 +115,7 @@ if df_base is not None:
     <div class="shock-card">
         <h3>⚙️ Задний амортизатор</h3>
         <div class="value-container">
-            <span class="value-label">🔹 Преднатяг пружины</span>
+            <span class="value-label">🔹 Преднатяг пружины (от полностью открученного)</span>
             <span class="value-badge-green">{b_z_pred} щелч.</span>
         </div>
         <div class="value-container">
