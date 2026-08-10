@@ -70,11 +70,16 @@ if df_base is not None:
     row = filtered_df.iloc[0] if not filtered_df.empty else None
 
     # Присваиваем значения (текстовый формат полностью защищает от "nan")
-    b_p_szh = row['comp_f'] if row is not None else "12"
-    b_p_otb = row['reb_f'] if row is not None else "9"
-    b_p_tur = row['preload_f'] if row is not None else "3"
-    b_z_pred = row['preload_r'] if row is not None else "17"
-    b_z_otb = row['reb_r'] if row is not None else "17"
+    if row is not None:
+        # Принудительно берем данные по физическому номеру столбца (0=weight, 1=mode, 2=comp_f, 3=reb_f, 4=preload_f...)
+        b_p_szh = str(row.iloc[2])
+        b_p_otb = str(row.iloc[3])
+        b_p_tur = str(row.iloc[4]) # Наш пятый столбец E с рисками!
+        b_z_pred = str(row.iloc[5])
+        b_z_otb = str(row.iloc[6])
+    else:
+        # Если строка не найдена, ставим дефолтные настройки
+        b_p_szh, b_p_otb, b_p_tur, b_z_pred, b_z_otb = "12", "9", "3", "17", "17"
 
     st.header("🛠️ Рекомендуемые настройки")
     
