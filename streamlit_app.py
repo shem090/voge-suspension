@@ -125,14 +125,13 @@ if df_base is not None:
         col1, col2 = st.columns(2)
         with col1:
             st.markdown("**⚓ Ваша передняя вилка:**")
-            u_p_tur = st.number_input("Преднатяг (риски)", value=float(b_p_tur) if b_p_tur.replace('.', '', 1).isdigit() else 3.0, step=0.5, key="up1")
-            u_p_szh = st.number_input("Сжатие (клики)", value=int(b_p_szh) if b_p_szh.isdigit() else 12, step=1, key="up2")
-            u_p_otb = st.number_input("Отбой (клики)", value=int(b_p_otb) if b_p_otb.isdigit() else 9, step=1, key="up3")
+            u_p_tur = st.number_input("Преднатяг (риски)", value=float(b_p_tur) if b_p_tur else 3.0, step=0.5, key="up1")
+            u_p_szh = st.number_input("Сжатие (клики)", value=int(b_p_szh) if b_p_szh else 12, step=1, key="up2")
+            u_p_otb = st.number_input("Отбой (клики)", value=int(b_p_otb) if b_p_otb else 9, step=1, key="up3")
         with col2:
             st.markdown("**🪐 Ваш задний амортизатор:**")
-            u_z_pred = st.number_input("Преднатяг (щелчки)", value=int(b_z_pred) if b_z_pred.isdigit() else 17, step=1, key="uz1")
-            u_z_otb = st.number_input("Отбой (клики)", value=int(b_z_otb) if b_z_otb.isdigit() else 17, step=1, key="uz2")
-            u_z_seg = st.number_input("Замеренный Сэг (мм)", value=60, step=1, key="uz3")
+            u_z_pred = st.number_input("Преднатяг (щелчки)", value=int(b_z_pred) if b_z_pred else 17, step=1, key="uz1")
+            u_z_otb = st.number_input("Отбой (клики)", value=int(b_z_otb) if b_z_otb else 17, step=1, key="uz2")
             
         user_comment = st.text_area("Why вы выбрали такие настройки?", placeholder="Например: Базовый преднатяг вилки показался мягким...")
         
