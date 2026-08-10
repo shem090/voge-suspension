@@ -173,22 +173,21 @@ if df_base is not None:
             st.session_state.review_index = (st.session_state.review_index - 1) % total_reviews
             st.rerun()
 
-        # Кнопка ЛАЙК / ОТМЕНА
+                # Кнопка ЛАЙК / ОТМЕНА (без лишних проверок URL)
         if nav_col2.button(btn_text, key=f"like_{st.session_state.review_index}_{likes_count}_{unique_suffix}", use_container_width=True):
-            if WEB_APP_URL != "СЮДА_ВСТАВЬТЕ_ВАШУ_ССЫЛКУ_ИЗ_APPS_SCRIPT":
-                try:
-                    if not has_liked:
-                        requests.post(WEB_APP_URL, json={"action": "like", "name": str(r_row['Имя'])})
-                        st.session_state[like_id] = True
-                        st.toast(f"Вы круты! Лайк для {r_row['Имя']} учтен 💥")
-                    else:
-                        requests.post(WEB_APP_URL, json={"action": "unlike", "name": str(r_row['Имя'])})
-                        st.session_state[like_id] = False
-                        st.toast(f"Лайк для {r_row['Имя']} успешно отменен ↩️")
-                    st.cache_data.clear()
-                    st.rerun()
-                except Exception:
-                    st.error("Ошибка связи с сервером.")
+            try:
+                if not has_liked:
+                    requests.post(WEB_APP_URL, json={"action": "like", "name": str(r_row['Имя'])})
+                    st.session_state[like_id] = True
+                    st.toast(f"Вы круты! Лайк для {r_row['Имя']} учтен 💥")
+                else:
+                    requests.post(WEB_APP_URL, json={"action": "unlike", "name": str(r_row['Имя'])})
+                    st.session_state[like_id] = False
+                    st.toast(f"Лайк для {r_row['Имя']} успешно отменен ↩️")
+                st.cache_data.clear()
+                st.rerun()
+            except Exception:
+                st.error("Ошибка связи с сервером таблицы.")
 
         # Кнопка ВПЕРЕД
         if nav_col3.button("Вперед ➡️", key=f"btn_next_{unique_suffix}", use_container_width=True):
