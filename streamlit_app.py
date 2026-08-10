@@ -73,22 +73,24 @@ if df_base is not None:
     # Извлекаем данные напрямую
     row = filtered_df.iloc[0] if not filtered_df.empty else None
 
-    # Присваиваем значения (текстовый формат полностью защищает от "nan")
-     if row is not None:
-        # Извлекаем чистые данные по физическому номеру ячейки в строке (отсчет с 0)
-        vals = row.values
-        b_p_szh = str(vals[2]).strip()    # 3-й столбец (comp_f)
-        b_p_otb = str(vals[3]).strip()    # 4-й столбец (reb_f)
-        b_p_tur = str(vals[4]).strip()    # 5-й столбец E (preload_f) - НАШИ РИСКИ!
-        b_z_pred = str(vals[5]).strip()   # 6-й столбец (preload_r)
-        b_z_otb = str(vals[6]).strip()    # 7-й столбец (reb_r)
-        
-        # Красиво отрезаем лишние нули у целых чисел, если они появились
-        if b_p_tur.endswith('.0'):
-            b_p_tur = b_p_tur[:-2]
-    else:
-        b_p_szh, b_p_otb, b_p_tur, b_z_pred, b_z_otb = "12", "9", "3", "17", "17"
+    # Принудительно переводим столбец веса в числа для железобетонного сравнения
+    df_base['weight'] = pd.to_numeric(df_base['weight'], errors='coerce').fillna(0).astype(int)
+    
+    # Фильтруем строку из базы данных по числу и строке режима
+    filtered_df = df_base[(df_base['weight'] == rounded_weight) & (df_base['mode'] == loading_mode)]
 
+    # Вытаскиваем значения. Если строка найдена — берем данные из столбцов, если нет — ставим дефолт на 90кг
+    b_p_szh = str(filtered_df['comp_f'].values[0]).strip() if not filtered_df.empty else "12"
+    b_p_otb = str(filtered_df['reb_f'].values[0]).strip() if not filtered_df.empty else "9"
+    b_p_tur = str(filtered_df['preload_f'].values[0]).strip() if not filtered_df.empty else "3"
+    b_z_pred = str(filtered_df['preload_r'].values[0]).strip() if not filtered_df.empty else "17"
+    b_z_otb = str(filtered_df['reb_r'].values[0]).strip() if not filtered_df.empty else "17"
+
+    # Красиво отрезаем лишние нули у целых чисел, если они появились (превращаем "3.0" в "3")
+    if b_p_tur.endswith('.0'):
+        b_p_tur = b_p_tur[:-2]
+
+    # Блок вывода рекомендуемых настроек
     st.header("🛠️ Рекомендуемые настройки")
     
     # Передняя вилка с выводом "рисок"
