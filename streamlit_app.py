@@ -27,7 +27,7 @@ WEB_APP_URL = "СЮДА_ВСТАВЬТЕ_ВАШУ_ССЫЛКУ_ИЗ_APPS_SCRIPT"
 @st.cache_data(ttl=15)
 def load_all_data():
     try:
-        df_b = pd.read_csv(URL_BASE)
+        df_b = pd.read_csv(URL_BASE, dtype=str)
         df_b.columns = df_b.columns.str.strip()
         df_b['mode'] = df_b['mode'].astype(str).str.strip()
         
@@ -64,16 +64,17 @@ if df_base is not None:
     filtered_df = df_base[(df_base['weight'] == rounded_weight) & (df_base['mode'] == loading_mode)]
 
           # Фильтруем строку из базы данных
-    if not filtered_df.empty:
-        # Извлекаем список словарей и берем самый первый элемент
-        records = filtered_df.to_dict(orient='records')
-        row = records[0]
-        
-        b_p_szh = int(row['comp_f'])
-        b_p_otb = int(row['reb_f'])
+       if not filtered_df.empty:
+        # Берем самую первую найденную строку напрямую
+        row = filtered_df.iloc[0]
+
+        # Извлекаем данные по именам столбцов
+        b_p_szh = row['comp_f']
+        b_p_otb = row['reb_f']
         b_p_tur = row['preload_f']
-        b_z_pred = int(row['preload_r'])
-        b_z_otb = int(row['reb_r'])
+        b_z_pred = row['preload_r']
+        b_z_otb = row['reb_r']
+
 
 
 
