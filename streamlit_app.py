@@ -134,7 +134,7 @@ if df_base is not None:
     if b_notes and b_notes != "nan" and b_notes.strip() != "":
         st.warning(f"📝 **Памятка:** {b_notes}")
 
-    # ==================== ВЫВОД ОТЗЫВОВ КЛУБА (КАРУСЕЛЬ) ====================
+        # ==================== ВЫВОД ОТЗЫВОВ КЛУБА (КАРУСЕЛЬ) ====================
     st.header("👥 Живой опыт других владельцев")
     matching_reviews = df_reviews[(df_reviews['Вес'] == str(rounded_weight)) & (df_reviews['Загрузка'] == loading_mode)]
     
@@ -155,10 +155,6 @@ if df_base is not None:
         if str(likes_count) == 'nan' or not str(likes_count).isdigit():
             likes_count = '0'
 
-        # Компактная панель навигации (Назад | Лайк-Отмена | Вперед)
-        nav_col1, nav_col2, nav_col3 = st.columns([1, 1.4, 1])
-        unique_suffix = f"{rounded_weight}_{loading_mode.replace(' ', '_')}"
-        
         # Уникальный суффикс для кнопок
         unique_suffix = f"{rounded_weight}_{loading_mode.replace(' ', '_')}"
         like_id = f"liked_{r_row['Имя']}_{unique_suffix}"
@@ -166,7 +162,8 @@ if df_base is not None:
         btn_text = f"❤️ Полезно ({likes_count})" if not has_liked else f"💖 Отменить лайк ({likes_count})"
 
         # 1. СНАЧАЛА КНОПКА ЛАЙКА (на всю ширину)
-        if st.button(btn_text, key=f"like_{st.session_state.review_index}_{likes_count}_{unique_suffix}", use_container_width=True):
+        like_btn_key = f"like_btn_{unique_suffix}_{st.session_state.review_index}_{likes_count}"
+        if st.button(btn_text, key=like_btn_key, use_container_width=True):
             try:
                 if not has_liked:
                     requests.post(WEB_APP_URL, json={"action": "like", "name": str(r_row['Имя']), "review_text": str(r_row['Причина_Текст'])})
@@ -181,14 +178,14 @@ if df_base is not None:
             except Exception:
                 st.error("Ошибка связи с сервером таблицы.")
 
-        # 2. ПОД НЕЙ ВПЕРЕД И НАЗАД НА ОДНОЙ СТРОКЕ (сверхкомпактные иконки)
+        # 2. ПОД НЕЙ ВПЕРЕД И НАЗАД НА ОДНОЙ СТРОКЕ
         nav_col1, nav_col2 = st.columns(2)
         
-        if nav_col1.button("⬅️", key=f"btn_prev_{unique_suffix}", use_container_width=True):
+        if nav_col1.button("⬅️ Назад", key=f"btn_prev_{unique_suffix}_{st.session_state.review_index}", use_container_width=True):
             st.session_state.review_index = (st.session_state.review_index - 1) % total_reviews
             st.rerun()
                 
-        if nav_col2.button("➡️", key=f"btn_next_{unique_suffix}", use_container_width=True):
+        if nav_col2.button("Вперед ➡️", key=f"btn_next_{unique_suffix}_{st.session_state.review_index}", use_container_width=True):
             st.session_state.review_index = (st.session_state.review_index + 1) % total_reviews
             st.rerun()
 
@@ -215,31 +212,6 @@ if df_base is not None:
                 <br><span style="color: #888888;">📊 Реальный Сэг зада: {z_s} мм</span>
             </p>
             <p style="margin-top: 12px; font-size: 0.9em; color: #FF9F1C; line-height: 1.3; border-top: 1px solid #2D2D2D; padding-top: 8px;">
-                💬 <b>Почему изменил:</b> {r_row['Причина_Текст']}
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
-
-        # Выносим интерактивную кнопку лайка под параметры подвески, но перед текстом комментария
-        if st.button(btn_text, key=f"like_{st.session_state.review_index}_{likes_count}_{unique_suffix}", use_container_width=True):
-            try:
-                if not has_liked:
-                    requests.post(WEB_APP_URL, json={"action": "like", "name": str(r_row['Имя']), "review_text": str(r_row['Причина_Текст'])})
-                    st.session_state[like_id] = True
-                    st.toast(f"Вы круты! Лайк для {r_row['Имя']} учтен 💥")
-                else:
-                    requests.post(WEB_APP_URL, json={"action": "unlike", "name": str(r_row['Имя']), "review_text": str(r_row['Причина_Текст'])})
-                    st.session_state[like_id] = False
-                    st.toast(f"Лайк для {r_row['Имя']} успешно отменен ↩️")
-                st.cache_data.clear()
-                st.rerun()
-            except Exception:
-                st.error("Ошибка связи с сервером таблицы.")
-
-        # Вывод самого текста комментария
-        st.markdown(f"""
-        <div class="user-review" style="margin-top: -20px; border-top: none; border-radius: 0 0 8px 8px;">
-            <p style="font-size: 0.9em; color: #FF9F1C; line-height: 1.3; border-top: 1px solid #2D2D2D; padding-top: 8px; margin-top: 0;">
                 💬 <b>Почему изменил:</b> {r_row['Причина_Текст']}
             </p>
         </div>
