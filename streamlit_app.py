@@ -135,7 +135,7 @@ if df_base is not None:
     if b_notes and b_notes != "nan" and b_notes.strip() != "":
         st.warning(f"📝 **Базовая памятка:** {b_notes}")
 
-               # ==================== ВЫВОД ОТЗЫВОВ КЛУБА (КАРУСЕЛЬ) ====================
+                  # ==================== ВЫВОД ОТЗЫВОВ КЛУБА (КАРУСЕЛЬ) ====================
     st.header("👥 Живой опыт других владельцев")
     matching_reviews = df_reviews[(df_reviews['Вес'] == str(rounded_weight)) & (df_reviews['Загрузка'] == loading_mode)]
     
@@ -153,36 +153,43 @@ if df_base is not None:
         # Получаем данные текущего отзыва по индексу
         r_row = matching_reviews.iloc[st.session_state.review_index]
         
-        # Создаем компактную панель навигации (Назад | Счетчик | Вперед)
-                # Панель управления каруселью (Кнопки Назад, Лайк, Вперед)
-        nav_col1, nav_col2, nav_col3 = st.columns([1, 1.2, 1])
+        # Проверяем и считываем количество лайков из 12-го столбца L таблицы
+        likes_count = r_row.get('Лайки', '0')
+        if str(likes_count) == 'nan' or not str(likes_count).isdigit():
+            likes_count = '0'
+
+        # Компактная панель навигации (Назад | Лайк | Вперед)
+        nav_col1, nav_col2, nav_col3 = st.columns([1, 1.3, 1])
         with nav_col1:
             if st.button("⬅️ Назад", key="btn_prev", use_container_width=True):
                 st.session_state.review_index = (st.session_state.review_index - 1) % total_reviews
                 st.rerun()
-                
         with nav_col2:
-            # Инициализируем лайки в памяти, если столбца ещё нет в вашей таблице
-            likes_count = r_row.get('Лайки', '0')
-            if str(likes_count) == 'nan' or not str(likes_count).isdigit():
-                likes_count = '0'
-            # Интерактивная кнопка-лайк (просто увеличивает счётчик для красоты интерфейса)
-            if st.button(f"❤️ Полезно ({likes_count})", key=f"like_{st.session_state.review_index}", use_container_width=True):
-                st.toast(f"Вы круты! Лайк для {r_row['Имя']} учтен 💥")
-                
+            # Настоящая кнопка лайка с отправкой команды "like" в Google Таблицу
+            if st.button(f"❤️ Полезно ({likes_count})", key=f"like_{st.session_state.review_index}_{likes_count}", use_container_width=True):
+                if WEB_APP_URL != "СЮДА_ВСТАВЬТЕ_ВАШУ_ССЫЛКУ_ИЗ_APPS_SCRIPT":
+                    try:
+                        # Отправляем JSON-команду с экшеном и точным именем автора для инкремента лайка
+                        requests.post(WEB_APP_URL, json={"action": "like", "name": str(r_row['Имя'])})
+                        st.cache_data.clear() # Стираем кэш приложения, чтобы сразу подгрузить новую цифру лайков
+                        st.toast(f"Вы круты! Лайк для {r_row['Имя']} успешно учтен 💥")
+                        st.rerun()
+                    except Exception:
+                        st.error("Ошибка связи при отправке лайка.")
         with nav_col3:
             if st.button("Вперед ➡️", key="btn_next", use_container_width=True):
                 st.session_state.review_index = (st.session_state.review_index + 1) % total_reviews
                 st.rerun()
 
-        # Вывод самого отзыва
+        # Вывод самого отзыва с интегрированным счетчиком страниц (справа в шапке)
         p_s = r_row['Перед_Реальный_Сэг_мм'] if 'Перед_Реальный_Сэг_мм' in df_reviews.columns else "58"
         z_s = r_row['Зад_Реальный_Сэг_мм'] if 'Зад_Реальный_Сэг_мм' in df_reviews.columns else "60"
         
         st.markdown(f"""
         <div class="user-review">
-            <div class="review-header">
-                🏍️ Райдер: {r_row['Имя']} | {rounded_weight} кг | {loading_mode}
+            <div class="review-header" style="display: flex; justify-content: space-between;">
+                <span>🏍️ Райдер: {r_row['Имя']} | {rounded_weight} кг | {loading_mode}</span>
+                <span style="color: #FF9F1C;">Отзыв {st.session_state.review_index + 1} из {total_reviews}</span>
             </div>
             <p class="sub-text" style="line-height: 1.5;">
                 <b>⚙️ Передняя вилка:</b>
