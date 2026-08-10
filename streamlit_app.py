@@ -98,35 +98,35 @@ if df_base is not None:
 
     st.header("🛠️ Рекомендуемые настройки")
     
-    # Передняя вилка с новыми блоками вывода цифр
+        # Передняя вилка — компактный вид
     st.markdown(f"""
     <div class="fork-card">
-        <h3>⚙️ Передняя вилка</h3>
+        <div class="card-title">⚙️ Передняя вилка</div>
         <div class="value-container">
-            <span class="value-label">🔹 Преднатяг пружины (по рискам)</span>
+            <span class="value-label">• Преднатяг пружины</span>
             <span class="value-badge-blue">{b_p_tur} рис.</span>
         </div>
         <div class="value-container">
-            <span class="value-label">🔹 Гидравлика Сжатия (от полностью закрученного)</span>
+            <span class="value-label"><i>• Гидравлика Сжатия</i></span>
             <span class="value-badge-blue">{b_p_szh} щелч.</span>
         </div>
         <div class="value-container">
-            <span class="value-label">🔹 Гидравлика Отбоя (от полностью закрученного)</span>
+            <span class="value-label"><i>• Гидравлика Отбоя (от полностью закрученного)</i></span>
             <span class="value-badge-blue">{b_p_otb} щелч.</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-    # Задний амортизатор с новыми блоками вывода цифр
+        # Задний амортизатор — компактный вид
     st.markdown(f"""
     <div class="shock-card">
-        <h3>⚙️ Задний амортизатор</h3>
+        <div class="card-title">⚙️ Задний амортизатор</div>
         <div class="value-container">
-            <span class="value-label">🔹 Преднатяг пружины (от полностью открученного)</span>
+            <span class="value-label">• Преднатяг пружины (от полностью открученного)</span>
             <span class="value-badge-green">{b_z_pred} щелч.</span>
         </div>
         <div class="value-container">
-            <span class="value-label">🔹 Гидравлика Отбоя (от полностью закрученного)</span>
+            <span class="value-label"><i>• Гидравлика Отбоя (от полностью закрученного)</i></span>
             <span class="value-badge-green">{b_z_otb} щелч.</span>
         </div>
     </div>
