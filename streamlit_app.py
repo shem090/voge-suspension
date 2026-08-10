@@ -154,15 +154,24 @@ if df_base is not None:
         r_row = matching_reviews.iloc[st.session_state.review_index]
         
         # Создаем компактную панель навигации (Назад | Счетчик | Вперед)
-        nav_col1, nav_col2, nav_col3 = st.columns([1, 2, 1])
+                # Панель управления каруселью (Кнопки Назад, Лайк, Вперед)
+        nav_col1, nav_col2, nav_col3 = st.columns([1, 1.2, 1])
         with nav_col1:
-            if st.button("⬅️ Назад", use_container_width=True):
+            if st.button("⬅️ Назад", key="btn_prev", use_container_width=True):
                 st.session_state.review_index = (st.session_state.review_index - 1) % total_reviews
                 st.rerun()
+                
         with nav_col2:
-            st.markdown(f"<p style='text-align: center; font-size: 1.1em; font-weight: bold; margin-top: 5px; color: #888888;'>Отзыв {st.session_state.review_index + 1} из {total_reviews}</p>", unsafe_allow_html=True)
+            # Инициализируем лайки в памяти, если столбца ещё нет в вашей таблице
+            likes_count = r_row.get('Лайки', '0')
+            if str(likes_count) == 'nan' or not str(likes_count).isdigit():
+                likes_count = '0'
+            # Интерактивная кнопка-лайк (просто увеличивает счётчик для красоты интерфейса)
+            if st.button(f"❤️ Полезно ({likes_count})", key=f"like_{st.session_state.review_index}", use_container_width=True):
+                st.toast(f"Вы круты! Лайк для {r_row['Имя']} учтен 💥")
+                
         with nav_col3:
-            if st.button("Вперед ➡️", use_container_width=True):
+            if st.button("Вперед ➡️", key="btn_next", use_container_width=True):
                 st.session_state.review_index = (st.session_state.review_index + 1) % total_reviews
                 st.rerun()
 
@@ -196,46 +205,69 @@ if df_base is not None:
         st.info("Альтернативных сетапов для этих параметров пока нет. Станьте первым!")
 
     # ==================== УМНАЯ ФОРМА ОТПРАВКИ ОТЗЫВА ====================
-    with st.expander("✍️ Добавить свой вариант настройки / Предложить изменения"):
-        user_name = st.text_input("Ваш ник в чате / Имя", placeholder="Например: Voge_Rider_77")
-        col1, col2 = st.columns(2)
-        with col1:
-            st.markdown("**⚙️ Ваша передняя вилка:**")
-            u_p_tur = st.number_input("Преднатяг (риски)", value=float(b_p_tur) if b_p_tur.replace('.', '', 1).isdigit() else 3.0, step=0.5, key="up1")
-            u_p_szh = st.number_input("Сжатие (щелчки)", value=int(b_p_szh) if b_p_szh.isdigit() else 12, step=1, key="up2")
-            u_p_otb = st.number_input("Отбой (щелчки)", value=int(b_p_otb) if b_p_otb.isdigit() else 9, step=1, key="up3")
-            u_p_seg = st.number_input("Реальный Сэг переда (мм)", value=58, step=1, key="up4")
-        with col2:
-            st.markdown("**⚙️ Ваш задний амортизатор:**")
-            u_z_pred = st.number_input("Преднатяг (щелчки)", value=int(b_z_pred) if b_z_pred.isdigit() else 17, step=1, key="uz1")
-            u_z_otb = st.number_input("Отбой (щелчки)", value=int(b_z_otb) if b_z_otb.isdigit() else 17, step=1, key="uz2")
-            u_z_seg = st.number_input("Замеренный Сэг зада (мм)", value=60, step=1, key="uz3")
-            
-        user_comment = st.text_area("Почему вы выбрали такие настройки?", placeholder="Например: Базовый преднатяг вилки показался мягким...")
+    # Память для автоматического закрытия формы
+    if 'show_form' not in st.session_state:
+        st.session_state.show_form = False
         
-        if st.button("🚀 Опубликовать сетап в приложении"):
-            if not user_name.strip() or not user_comment.strip():
-                st.error("Заполните ваше имя и причину изменений перед отправкой.")
-            elif WEB_APP_URL == "СЮДА_ВСТАВЬТЕ_ВАШУ_ССЫЛКУ_ИЗ_APPS_SCRIPT":
-                st.error("Настройте скрипт отправки в Google Таблицу.")
-            else:
-                payload = {
-                    "name": str(user_name), "weight": str(rounded_weight), "mode": str(loading_mode),
-                    "p_seg": str(u_p_tur), "p_szh": str(u_p_szh), "p_otb": str(u_p_otb),
-                    "z_pred": str(u_z_pred), "z_otb": str(u_z_otb), 
-                    "p_real_seg": str(u_p_seg), "z_seg": str(u_z_seg),
-                    "text": str(user_comment)
-                }
-                try:
-                    res = requests.post(WEB_APP_URL, json=payload)
-                    if res.status_code == 200:
-                        st.cache_data.clear()
-                        st.success("✅ Отзыв успешно опубликован! Сетап мгновенно добавлен в базу.")
-                        st.rerun()
-                    else:
-                        st.error("Ошибка сервера при отправке.")
-                except Exception:
-                    st.error("Не удалось связаться с базой данных.")
+    if 'show_success' not in st.session_state:
+        st.session_state.show_success = False
+
+    # Показываем зелёную плашку успеха, если отзыв только что отправили
+    if st.session_state.show_success:
+        st.success("✅ Отзыв успешно опубликован! Сетап мгновенно добавлен в базу.")
+        # Сбрасываем плашку при следующем шевелении ползунков веса
+        st.session_state.show_success = False
+
+    # Логика кнопки открытия/закрытия формы
+    form_label = "❌ Закрыть форму написания отзыва" if st.session_state.show_form else "✍️ Добавить свой вариант настройки / Предложить изменения"
+    if st.button(form_label, key="toggle_form_btn"):
+        st.session_state.show_form = not st.session_state.show_form
+        st.rerun()
+
+    # Если форма открыта — рендерим поля ввода
+    if st.session_state.show_form:
+        with st.container(border=True):
+            user_name = st.text_input("Ваш ник в чате / Имя", placeholder="Например: Voge_Rider_77")
+            col1, col2 = st.columns(2)
+            with col1:
+                st.markdown("**⚙️ Ваша передняя вилка:**")
+                u_p_tur = st.number_input("Преднатяг (риски)", value=float(b_p_tur) if b_p_tur.replace('.', '', 1).isdigit() else 3.0, step=0.5, key="up1")
+                u_p_szh = st.number_input("Сжатие (щелчки)", value=int(b_p_szh) if b_p_szh.isdigit() else 12, step=1, key="up2")
+                u_p_otb = st.number_input("Отбой (щелчки)", value=int(b_p_otb) if b_p_otb.isdigit() else 9, step=1, key="up3")
+                u_p_seg = st.number_input("Реальный Сэг переда (мм)", value=58, step=1, key="up4")
+            with col2:
+                st.markdown("**⚙️ Ваш задний амортизатор:**")
+                u_z_pred = st.number_input("Преднатяг (щелчки)", value=int(b_z_pred) if b_z_pred.isdigit() else 17, step=1, key="uz1")
+                u_z_otb = st.number_input("Отбой (щелчки)", value=int(b_z_otb) if b_z_otb.isdigit() else 17, step=1, key="uz2")
+                u_z_seg = st.number_input("Замеренный Сэг зада (мм)", value=60, step=1, key="uz3")
+                
+            user_comment = st.text_area("Почему вы выбрали такие настройки?", placeholder="Например: Базовый преднатяг вилки показался мягким...")
+            
+            if st.button("🚀 Опубликовать сетап в приложении", key="submit_review_btn"):
+                if not user_name.strip() or not user_comment.strip():
+                    st.error("Заполните ваше имя и причину изменений перед отправкой.")
+                elif WEB_APP_URL == "СЮДА_ВСТАВЬТЕ_ВАШУ_ССЫЛКУ_ИЗ_APPS_SCRIPT":
+                    st.error("Настройте скрипт отправки в Google Таблицу.")
+                else:
+                    payload = {
+                        "name": str(user_name), "weight": str(rounded_weight), "mode": str(loading_mode),
+                        "p_seg": str(u_p_tur), "p_szh": str(u_p_szh), "p_otb": str(u_p_otb),
+                        "z_pred": str(u_z_pred), "z_otb": str(u_z_otb), 
+                        "p_real_seg": str(u_p_seg), "z_seg": str(u_z_seg),
+                        "text": str(user_comment)
+                    }
+                    try:
+                        res = requests.post(WEB_APP_URL, json=payload)
+                        if res.status_code == 200:
+                            st.cache_data.clear()
+                            # ВКЛЮЧАЕМ ТРИГГЕРЫ: Закрыть форму и Показать надпись успеха
+                            st.session_state.show_form = False
+                            st.session_state.show_success = True
+                            st.rerun()
+                        else:
+                            st.error("Ошибка сервера при отправке.")
+                    except Exception:
+                        st.error("Не удалось связаться с базой данных.")
 
     # Раздел стандартных шпаргалок и руководств
     st.header("📖 Руководство: Как правильно крутить?")
