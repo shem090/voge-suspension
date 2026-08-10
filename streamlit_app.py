@@ -70,12 +70,12 @@ if df_base is not None:
     b_z_pred, b_z_otb = 17, 17
 
     if not filtered_df.empty:
-              # Считываем данные строго по номерам столбцов (0=Вес, 1=Загрузка, 2=Сжатие, 3=Отбой, 4=Витки)
-        b_p_szh = int(row.iloc[2])  # Столбец C
-        b_p_otb = int(row.iloc[3])  # Столбец D
-        b_p_tur = row.iloc[4]       # Столбец E (наши риски/витки)
-        b_z_pred = int(row.iloc[5]) # Столбец F
-        b_z_otb = int(row.iloc[6])  # Столбец G
+                     # Считываем данные напрямую по индексам ячеек в строке (2=Сжатие, 3=Отбой, 4=Риски, 5=Преднатяг зад)
+        b_p_szh = int(row.values[2])   # Столбец C
+        b_p_otb = int(row.values[3])   # Столбец D
+        b_p_tur = row.values[4]        # Столбец E (наши риски)
+        b_z_pred = int(row.values[5])  # Столбец F
+        b_z_otb = int(row.values[6])   # Столбец G
 
 
         st.header("🛠️ Рекомендуемые настройки")
