@@ -63,8 +63,9 @@ if df_base is not None:
     # Фильтруем строку из базы данных
     filtered_df = df_base[(df_base['weight'] == rounded_weight) & (df_base['mode'] == loading_mode)]
 
-       if not filtered_df.empty:
-        # Извлекаем список словарей и берем самый первый элемент [0]
+          # Фильтруем строку из базы данных
+    if not filtered_df.empty:
+        # Извлекаем список словарей и берем самый первый элемент
         records = filtered_df.to_dict(orient='records')
         row = records[0]
         
@@ -73,6 +74,7 @@ if df_base is not None:
         b_p_tur = row['preload_f']
         b_z_pred = int(row['preload_r'])
         b_z_otb = int(row['reb_r'])
+
 
 
         st.header("🛠️ Рекомендуемые настройки")
