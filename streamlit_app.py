@@ -134,7 +134,7 @@ if df_base is not None:
     if b_notes and b_notes != "nan" and b_notes.strip() != "":
         st.warning(f"📝 **Памятка:** {b_notes}")
 
-        # ==================== ВЫВОД ОТЗЫВОВ КЛУБА (КАРУСЕЛЬ) ====================
+    # ==================== ВЫВОД ОТЗЫВОВ КЛУБА (КАРУСЕЛЬ) ====================
     st.header("👥 Живой опыт других владельцев")
     matching_reviews = df_reviews[(df_reviews['Вес'] == str(rounded_weight)) & (df_reviews['Загрузка'] == loading_mode)]
     
@@ -178,14 +178,14 @@ if df_base is not None:
             except Exception:
                 st.error("Ошибка связи с сервером таблицы.")
 
-        # 2. ПОД НЕЙ ВПЕРЕД И НАЗАД НА ОДНОЙ СТРОКЕ
-        nav_col1, nav_col2 = st.columns(2, gap="small")
-        
-        if nav_col1.button("⬅️ Назад", key=f"btn_prev_{unique_suffix}_{st.session_state.review_index}", use_container_width=True):
+        # 2. ПОД НЕЙ ВПЕРЕД И НАЗАД НА ОДНОЙ СТРОКЕ (Через компактные стандартные кнопки без текста)
+        # Мы используем st.columns со специальной пропорцией [1, 1], чтобы зажать их по центру
+        st.write("") # Небольшой отступ
+        c_left, c_right = st.columns(2)
+        if c_left.button(" ⬅️ ", key=f"btn_l_{unique_suffix}_{st.session_state.review_index}", use_container_width=True):
             st.session_state.review_index = (st.session_state.review_index - 1) % total_reviews
             st.rerun()
-                
-        if nav_col2.button("Вперед ➡️", key=f"btn_next_{unique_suffix}_{st.session_state.review_index}", use_container_width=True):
+        if c_right.button(" ➡️ ", key=f"btn_r_{unique_suffix}_{st.session_state.review_index}", use_container_width=True):
             st.session_state.review_index = (st.session_state.review_index + 1) % total_reviews
             st.rerun()
 
