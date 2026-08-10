@@ -60,25 +60,22 @@ if df_base is not None:
     rounded_weight = max(70, min(rounded_weight, 105))
     st.info(f"Ближайшая категория в базе: {rounded_weight} кг.")
 
-    # Фильтруем строку из базы данных
-    filtered_df = df_base[(df_base['weight'] == rounded_weight) & (df_base['mode'] == loading_mode)]
+       # Фильтруем строку из базы данных
+    filtered_df = df_base[(df_base['weight'] == str(rounded_weight)) & (df_base['mode'] == loading_mode)]
 
-          # Фильтруем строку из базы данных
-       if not filtered_df.empty:
-        # Берем самую первую найденную строку напрямую
-        row = filtered_df.iloc[0]
+    # Извлекаем данные напрямую без блоков условий, чтобы исключить ошибки отступов
+    row = filtered_df.iloc[0] if not filtered_df.empty else None
 
-        # Извлекаем данные по именам столбцов
-        b_p_szh = row['comp_f']
-        b_p_otb = row['reb_f']
-        b_p_tur = row['preload_f']
-        b_z_pred = row['preload_r']
-        b_z_otb = row['reb_r']
+    # Задаем значения (если строка найдена в базе)
+    b_p_szh = row['comp_f'] if row is not None else "12"
+    b_p_otb = row['reb_f'] if row is not None else "9"
+    b_p_tur = row['preload_f'] if row is not None else "3"
+    b_z_pred = row['preload_r'] if row is not None else "17"
+    b_z_otb = row['reb_r'] if row is not None else "17"
 
+    # Блок вывода рекомендуемых настроек
+    st.header("🛠️ Рекомендуемые настройки")
 
-
-
-        st.header("🛠️ Рекомендуемые настройки")
         
         st.markdown(f"""
         <div class="fork-card">
