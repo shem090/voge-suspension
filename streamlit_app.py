@@ -75,14 +75,17 @@ if df_base is not None:
 
     # Присваиваем значения (текстовый формат полностью защищает от "nan")
     if row is not None:
-        # Принудительно берем данные по физическому номеру столбца (0=weight, 1=mode, 2=comp_f, 3=reb_f, 4=preload_f...)
-        b_p_szh = str(row.iloc[2])
-        b_p_otb = str(row.iloc[3])
-        b_p_tur = str(row.iloc[4]) # Наш пятый столбец E с рисками!
-        b_z_pred = str(row.iloc[5])
-        b_z_otb = str(row.iloc[6])
+        # Считываем данные напрямую по именам столбцов, убирая ошибки форматов
+        b_p_szh = str(row['comp_f']).strip()
+        b_p_otb = str(row['reb_f']).strip()
+        b_p_tur = str(row['preload_f']).strip()  # Наш преднатяг в рисках
+        b_z_pred = str(row['preload_r']).strip()
+        b_z_otb = str(row['reb_r']).strip()
+        
+        # Если в базе число записалось как "3.0", превращаем его в красивое "3"
+        if b_p_tur.endswith('.0'):
+            b_p_tur = b_p_tur[:-2]
     else:
-        # Если строка не найдена, ставим дефолтные настройки
         b_p_szh, b_p_otb, b_p_tur, b_z_pred, b_z_otb = "12", "9", "3", "17", "17"
 
     st.header("🛠️ Рекомендуемые настройки")
