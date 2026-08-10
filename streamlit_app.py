@@ -179,7 +179,7 @@ if df_base is not None:
                 st.error("Ошибка связи с сервером таблицы.")
 
         # 2. ПОД НЕЙ ВПЕРЕД И НАЗАД НА ОДНОЙ СТРОКЕ
-        nav_col1, nav_col2 = st.columns(2)
+        nav_col1, nav_col2 = st.columns(2, gap="small")
         
         if nav_col1.button("⬅️ Назад", key=f"btn_prev_{unique_suffix}_{st.session_state.review_index}", use_container_width=True):
             st.session_state.review_index = (st.session_state.review_index - 1) % total_reviews
