@@ -63,8 +63,12 @@ if df_base is not None:
     rounded_weight = max(70, min(rounded_weight, 105))
     st.info(f"Ближайшая категория в базе: {rounded_weight} кг.")
 
-    # Фильтруем строку из базы данных
-    filtered_df = df_base[(df_base['weight'] == str(rounded_weight)) & (df_base['mode'] == loading_mode)]
+    # Принудительно переводим столбец веса в числа для железобетонного сравнения без ошибок "90.0"
+    df_base['weight'] = pd.to_numeric(df_base['weight'], errors='coerce').fillna(0).astype(int)
+    
+    # Фильтруем строку из базы данных по числу и строке режима
+    filtered_df = df_base[(df_base['weight'] == rounded_weight) & (df_base['mode'] == loading_mode)]
+
 
     # Извлекаем данные напрямую
     row = filtered_df.iloc[0] if not filtered_df.empty else None
