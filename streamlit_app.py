@@ -20,11 +20,11 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Ссылки для чтения листов вашей таблицы
-URL_BASE = "https://google.com"
-URL_REVIEWS = "https://google.com"
+URL_BASE = "https://docs.google.com/spreadsheets/d/1v4sB4PlYPktvR67d69x0tzWjbeOE3DCtVQm5XhQJ0T0/edit?usp=sharing"
+URL_REVIEWS = "https://docs.google.com/spreadsheets/d/1v4sB4PlYPktvR67d69x0tzWjbeOE3DCtVQm5XhQJ0T0/edit?usp=sharing"
 
 # Вставьте сюда вашу ссылку из Apps Script, полученную на Шаге 2
-WEB_APP_URL = "ПОКА_ПУСТО_ЗАМЕНИМ_ПОСЛЕ_РАЗВЕРТЫВАНИЯ"
+WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwMijFw9GTaAIxg391IMZ3EbqcIqeuKDLeG36cP1Yjl7Rou6Cr6GeQ5MUzg4EV64Ry7/exec"
 
 @st.cache_data(ttl=30)
 def load_all_data():
