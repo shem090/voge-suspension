@@ -100,7 +100,7 @@ if df_base is not None:
             <span class="value-badge-blue">{b_p_tur} рис.</span>
         </div>
         <div class="value-container">
-            <span class="value-label">🔹 Гидравлика Сжатия</span>
+            <span class="value-label">🔹 Гидравлика Сжатия (от полностью закрученного)</span>
             <span class="value-badge-blue">{b_p_szh} щелч.</span>
         </div>
         <div class="value-container">
