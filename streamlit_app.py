@@ -162,7 +162,7 @@ if df_base is not None:
     st.header("📖 Руководство: Как правильно крутить?")
     
     with st.expander("🛠️ ИНСТРУКЦИЯ ДЛЯ ПЕРЕДНЕЙ ВИЛКИ"):
-        st.markdown("### ⚓ Настройка вилки Voge DS900X")
+        st.markdown(" ⚓ Настройка вилки Voge DS900X")
         st.image("https://unsplash.com", caption="Регуляторы на перьях вилки Voge DS900X", use_container_width=True)
         st.write("🛑 **ПРАВИЛО ОТСЧЕТА ГИДРАВЛИКИ:** Все клики гидравлики (Сжатие и Отбой) считаются **ОТ ПОЛНОСТЬЮ ЗАКРУЧЕННОГО** состояния!")
         st.markdown("""
