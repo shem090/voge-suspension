@@ -74,15 +74,16 @@ if df_base is not None:
     row = filtered_df.iloc[0] if not filtered_df.empty else None
 
     # Присваиваем значения (текстовый формат полностью защищает от "nan")
-    if row is not None:
-        # Считываем данные напрямую по именам столбцов, убирая ошибки форматов
-        b_p_szh = str(row['comp_f']).strip()
-        b_p_otb = str(row['reb_f']).strip()
-        b_p_tur = str(row['preload_f']).strip()  # Наш преднатяг в рисках
-        b_z_pred = str(row['preload_r']).strip()
-        b_z_otb = str(row['reb_r']).strip()
+     if row is not None:
+        # Извлекаем чистые данные по физическому номеру ячейки в строке (отсчет с 0)
+        vals = row.values
+        b_p_szh = str(vals[2]).strip()    # 3-й столбец (comp_f)
+        b_p_otb = str(vals[3]).strip()    # 4-й столбец (reb_f)
+        b_p_tur = str(vals[4]).strip()    # 5-й столбец E (preload_f) - НАШИ РИСКИ!
+        b_z_pred = str(vals[5]).strip()   # 6-й столбец (preload_r)
+        b_z_otb = str(vals[6]).strip()    # 7-й столбец (reb_r)
         
-        # Если в базе число записалось как "3.0", превращаем его в красивое "3"
+        # Красиво отрезаем лишние нули у целых чисел, если они появились
         if b_p_tur.endswith('.0'):
             b_p_tur = b_p_tur[:-2]
     else:
