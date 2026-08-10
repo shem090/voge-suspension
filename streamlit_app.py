@@ -70,7 +70,7 @@ if df_base is not None:
     b_z_pred, b_z_otb = 17, 17
 
     if not filtered_df.empty:
-        row = filtered_df.iloc
+        row = filtered_df.iloc[0]
         b_p_szh, b_p_otb = int(row['Перед: Сжатие']), int(row['Перед: Отбой'])
         b_p_tur = row['Перед: Преднатяг (витков)']
         b_z_pred, b_z_otb = int(row['Зад: Преднатяг']), int(row['Зад: Отбой'])
