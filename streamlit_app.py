@@ -178,20 +178,18 @@ if df_base is not None:
             except Exception:
                 st.error("Ошибка связи с сервером таблицы.")
 
-                # 2. ВТОРОЙ УРОВЕНЬ: КНОПКИ ЛИСТАНИЯ СТРОГО НА ОДНОЙ СТРОКЕ (Горизонтальный HTML-флекс)
-        st.markdown('<div style="display: flex; gap: 10px; width: 100%;">', unsafe_allow_html=True)
+        # 2. ВТОРОЙ УРОВЕНЬ: КНОПКИ ЛИСТАНИЯ (Создаем две колонки в один ряд)
+        col_nav1, col_nav2 = st.columns(2)
         
-        # Кнопка НАЗАД занимает левую половину строки
-        if st.button("⬅️ Назад", key=f"btn_prev_{unique_suffix}_{st.session_state.review_index}", use_container_width=True):
+        # Кнопка НАЗАД рендерится строго в левой колонке
+        if col_nav1.button("⬅️ Назад", key=f"btn_prev_{unique_suffix}_{st.session_state.review_index}", use_container_width=True):
             st.session_state.review_index = (st.session_state.review_index - 1) % total_reviews
             st.rerun()
                 
-        # Кнопка ВПЕРЕД занимает правую половину строки
-        if st.button("Вперед ➡️", key=f"btn_next_{unique_suffix}_{st.session_state.review_index}", use_container_width=True):
+        # Кнопка ВПЕРЕД рендерится строго в правой колонке
+        if col_nav2.button("Вперед ➡️", key=f"btn_next_{unique_suffix}_{st.session_state.review_index}", use_container_width=True):
             st.session_state.review_index = (st.session_state.review_index + 1) % total_reviews
             st.rerun()
-            
-        st.markdown('</div>', unsafe_allow_html=True)
 
         # 3. ТРЕТИЙ УРОВЕНЬ: САМА КАРТОЧКА ОТЗЫВА
         p_s = r_row['Перед_Реальный_Сэг_мм'] if 'Перед_Реальный_Сэг_мм' in df_reviews.columns else "58"
