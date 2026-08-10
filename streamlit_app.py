@@ -193,7 +193,7 @@ if df_base is not None:
             st.rerun()
 
         # 3. САМА КАРТОЧКА ОТЗЫВА
-        p_s = r_row['Before_Реальный_Сэг_мм'] if 'Перед_Реальный_Сэг_мм' in df_reviews.columns else "58"
+        p_s = r_row['Перед_Реальный_Сэг_мм'] if 'Перед_Реальный_Сэг_мм' in df_reviews.columns else "58"
         z_s = r_row['Зад_Реальный_Сэг_мм'] if 'Зад_Реальный_Сэг_мм' in df_reviews.columns else "60"
         
         st.markdown(f"""
