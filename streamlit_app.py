@@ -20,8 +20,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Ссылки для чтения листов вашей таблицы
-URL_BASE = "https://docs.google.com/spreadsheets/d/1v4sB4PlYPktvR67d69x0tzWjbeOE3DCtVQm5XhQJ0T0/edit?usp=sharing"
-URL_REVIEWS = "https://docs.google.com/spreadsheets/d/1v4sB4PlYPktvR67d69x0tzWjbeOE3DCtVQm5XhQJ0T0/edit?usp=sharing"
+URL_BASE = "https://docs.google.com/spreadsheets/d/1v4sB4PlYPktvR67d69x0tzWjbeOE3DCtVQm5XhQJ0T0/export?format=csv&gid=1114511598"
+URL_REVIEWS = "https://docs.google.com/spreadsheets/d/1v4sB4PlYPktvR67d69x0tzWjbeOE3DCtVQm5XhQJ0T0/export?format=csv&gid=1768407481"
 
 # Вставьте сюда вашу ссылку из Apps Script, полученную на Шаге 2
 WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwMijFw9GTaAIxg391IMZ3EbqcIqeuKDLeG36cP1Yjl7Rou6Cr6GeQ5MUzg4EV64Ry7/exec"
