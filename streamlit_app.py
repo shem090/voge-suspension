@@ -51,6 +51,9 @@ SETTING_COLUMNS = ("comp_f", "reb_f", "preload_f", "preload_r", "reb_r")
 REAR_PRELOAD_CAP = 25  # Наблюдение Shem090, а не подтверждённый предел для всех экземпляров.
 MAX_PAYLOAD_KG = 205
 MANUAL_URL = "https://voge.gr/wp-content/uploads/2021/09/DS900X-user-manual-.pdf"
+AXLE_LIMITS_KG = (161, 282)  # Таблица технических характеристик Voge DS900X.
+TYRE_RATED_LOADS_KG = (212, 325)  # Штатные индексы нагрузки 54 и 69.
+ETRTO_2007_URL = "https://pdfcoffee.com/design2007pdf-pdf-free.html"
 
 
 def number(value):
@@ -104,6 +107,19 @@ def tire_pressures(mode, extra_cargo=False):
     if "кофры" in mode or extra_cargo:
         return (("Соло", "2,2", "2,5"), ("С пассажиром", "2,5", "2,9"))
     return (("Соло", "2,2", "2,5"),)
+
+
+def estimated_axle_loads(rider_weight, passenger_weight, cargo_weight, cargo_front_percent):
+    front = (110 + 0.4 * rider_weight + 0.2 * passenger_weight
+             + cargo_front_percent / 100 * cargo_weight)
+    total = 238 + rider_weight + passenger_weight + cargo_weight
+    return front, total - front
+
+
+def engineering_minimum_bar(wheel_load, rated_load):
+    # ETRTO 2007, MC.16. Приняты PT = 290 кПа и конструктивная скорость 210 км/ч.
+    pressure_kpa = max(150, (290 + 210 - 150) * (wheel_load / rated_load) ** 1.25)
+    return math.floor(pressure_kpa / 10 + 0.5) / 10
 
 
 def sag_text(value):
@@ -263,7 +279,7 @@ if df_base is not None:
             for label, front, rear in tire_pressures(loading_mode, extra_cargo)
         )
     st.markdown(
-        f'<div class="tire-card"><div class="card-title">Давление на холодных шинах</div>'
+        f'<div class="tire-card"><div class="card-title">Дорожное давление Voge · на холодную</div>'
         f'{pressure_rows}</div>', unsafe_allow_html=True,
     )
     if not overloaded:
@@ -278,6 +294,51 @@ if df_base is not None:
         st.caption("Voge указывает давление для соло и для поездки с пассажиром. "
                    "Таблицы давления по килограммам в руководстве нет.")
     st.markdown(f"[Руководство Voge, стр. 4 и 78]({MANUAL_URL})")
+
+    if not overloaded:
+        with st.expander("Расчётный минимум давления по нагрузке на колёса"):
+            st.caption("Инженерная оценка для штатных индексов 54V / 69V. "
+                       "Дорожные значения Voge приведены выше.")
+            use_scales = st.checkbox("Ввести показания весов")
+            axle_loads = None
+            if use_scales:
+                front_load = st.number_input("Переднее колесо на весах, кг", min_value=1,
+                                             value=None, step=1)
+                rear_load = st.number_input("Заднее колесо на весах, кг", min_value=1,
+                                            value=None, step=1)
+                if front_load is not None and rear_load is not None:
+                    axle_loads = (front_load, rear_load)
+                else:
+                    st.caption("Нужны оба показания с выбранной загрузкой и колёсами на одной высоте.")
+            elif load_complete:
+                cargo_front_percent = 10
+                if cargo_weight:
+                    cargo_front_percent = st.number_input(
+                        "Доля веса багажа на переднем колесе, %", min_value=0, max_value=100,
+                        value=10, step=5,
+                    )
+                axle_loads = estimated_axle_loads(user_weight, passenger_weight, cargo_weight,
+                                                 cargo_front_percent)
+                st.caption("Допущения модели, перед / зад: мотоцикл 110 / 128 кг, "
+                           "райдер 40 / 60%, пассажир 20 / 80%. Выносной груз за задней осью "
+                           "может разгрузить переднее колесо. Для него лучше использовать весы.")
+            else:
+                st.caption("Введите недостающий вес пассажира или багажа либо показания весов.")
+
+            if axle_loads is not None:
+                front_load, rear_load = axle_loads
+                st.write(f"**Нагрузка на колёса** — перед {front_load:.1f} кг · зад {rear_load:.1f} кг.")
+                exceeds_axle_limit = any(load > limit for load, limit in zip(axle_loads, AXLE_LIMITS_KG))
+                if exceeds_axle_limit:
+                    st.warning("Нагрузка выше значения из таблицы Voge: 161 кг спереди и 282 кг сзади. "
+                               "Сверьте показания весов и ограничения своего мотоцикла. "
+                               "При подтверждённом превышении уменьшите загрузку.")
+                if not (use_scales and exceeds_axle_limit):
+                    front_bar, rear_bar = (engineering_minimum_bar(load, rated) for load, rated in
+                                           zip(axle_loads, TYRE_RATED_LOADS_KG))
+                    st.write(f"**Расчётный минимум** — перед {front_bar:.1f} бар · зад {rear_bar:.1f} бар.")
+            st.caption("Принято опорное давление шин 2,9 бар и конструктивная скорость 210 км/ч.")
+            st.markdown(f"[Методика ETRTO 2007, MC.16]({ETRTO_2007_URL})")
 
     with st.expander("Проверить рабочий сэг", expanded=(status == "reference" or result is None
                                                         or b_z_pred == REAR_PRELOAD_CAP)):
