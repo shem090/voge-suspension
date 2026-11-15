@@ -1,6 +1,9 @@
 import streamlit as st
 import pandas as pd
 import requests
+import math
+import re
+from html import escape
 
 # Настройка страницы (Темная тема и мобильный вид)
 st.set_page_config(page_title="Подвеска Voge DS900X", page_icon="🏍️", layout="centered")
@@ -10,6 +13,12 @@ st.markdown("""
     <style>
     .main { background-color: #121212; color: #FFFFFF; }
     .stApp { background-color: #121212; }
+    .block-container { max-width: 44rem; padding: 2.2rem 1rem 2.5rem; }
+    .fork-card, .shock-card, .tire-card { color: #F1F5FA; }
+    .tire-card { background: #202632; border: 1px solid #455371; border-radius: 10px; padding: 14px; margin-bottom: 12px; }
+    .pressure-line { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin: 7px 0; }
+    .pressure-line b { color: #DCE8FF; }
+    @media (max-width: 480px) { .block-container { padding-top: 1.6rem; } }
     
     /* Компактные карточки подвески */
     .fork-card { background-color: #1A2332; padding: 14px; border-radius: 10px; border-left: 5px solid #3A86FF; margin-bottom: 12px; }
@@ -38,12 +47,97 @@ URL_REVIEWS = st.secrets["URL_REVIEWS"]
 # Вставьте вашу сохраненную ссылку из Apps Script
 WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyT_0f2fr52rkOA5Z7EsGjDqa8axAOxZNqHaEY8lx-o9n3KJQAOgup0sMfwtwsS9_pR/exec"
 
+SETTING_COLUMNS = ("comp_f", "reb_f", "preload_f", "preload_r", "reb_r")
+REAR_PRELOAD_CAP = 25  # Наблюдение Shem090, а не подтверждённый предел для всех экземпляров.
+MAX_PAYLOAD_KG = 205
+MANUAL_URL = "https://voge.gr/wp-content/uploads/2021/09/DS900X-user-manual-.pdf"
+
+
+def number(value):
+    try:
+        parsed = float(str(value).strip().replace(",", "."))
+    except (ValueError, TypeError):
+        return None
+    return parsed if math.isfinite(parsed) else None
+
+
+def suspension_setting(base, weight, mode):
+    rows = base.loc[base["mode"] == mode].copy()
+    for column in ("weight", *SETTING_COLUMNS):
+        rows[column] = rows[column].map(number)
+    rows = rows.dropna(subset=["weight", *SETTING_COLUMNS])
+    rows = rows.loc[(rows[list(SETTING_COLUMNS)] >= 0).all(axis=1)]
+    rows = rows.sort_values("weight", kind="stable").drop_duplicates("weight", keep="first")
+    if rows.empty:
+        return None
+
+    lower = rows.loc[rows["weight"] <= weight]
+    upper = rows.loc[rows["weight"] >= weight]
+    if lower.empty or upper.empty:
+        edge = rows.iloc[0] if lower.empty else rows.iloc[-1]
+        left = right = edge
+        status = "reference"
+    else:
+        left, right = lower.iloc[-1], upper.iloc[0]
+        status = "table" if left["weight"] == right["weight"] else "interpolated"
+
+    fraction = 0 if left["weight"] == right["weight"] else (
+        (weight - left["weight"]) / (right["weight"] - left["weight"])
+    )
+    settings = {}
+    for column in SETTING_COLUMNS:
+        value = left[column] + (right[column] - left[column]) * fraction
+        settings[column] = round(float(value), 2) if column == "preload_f" else math.floor(value + 0.5)
+
+    limited = settings["preload_r"] > REAR_PRELOAD_CAP
+    settings["preload_r"] = min(settings["preload_r"], REAR_PRELOAD_CAP)
+    notes = left.get("notes", "") if status == "table" else ""
+    if pd.isna(notes):
+        notes = ""
+    return settings, status, int(left["weight"]), int(right["weight"]), limited, str(notes).strip()
+
+
+def tire_pressures(mode):
+    mode = mode.casefold().replace("ё", "е")
+    if "вдвоем" in mode:
+        return (("С пассажиром", "2,5", "2,9"),)
+    if "кофры" in mode:
+        return (("Соло", "2,2", "2,5"), ("С пассажиром", "2,5", "2,9"))
+    return (("Соло", "2,2", "2,5"),)
+
+
+def sag_text(value):
+    measured = number(value)
+    return f"{measured:g} мм" if measured is not None and measured > 0 else "—"
+
+
+def html_text(value):
+    return "" if pd.isna(value) else escape(str(value))
+
+
+def review_text_html(value):
+    if pd.isna(value):
+        return ""
+    lines = re.split(r"<br\s*/?>|\r?\n", str(value), flags=re.IGNORECASE)
+    return "<br>".join(escape(line) for line in lines)
+
+
+def post_review_action(payload):
+    response = requests.post(WEB_APP_URL, json=payload, timeout=12)
+    response.raise_for_status()
+    if response.text.strip() != "Success":
+        raise ValueError("Unexpected Apps Script response")
+
+
 @st.cache_data(ttl=15)
 def load_all_data():
     try:
         df_b = pd.read_csv(URL_BASE, dtype=str)
         df_b.columns = df_b.columns.str.strip()
-        df_b['mode'] = df_b['mode'].astype(str).str.strip()
+        df_b["mode"] = df_b["mode"].str.strip().replace("", pd.NA)
+        missing_columns = {"weight", "mode", *SETTING_COLUMNS} - set(df_b.columns)
+        if missing_columns:
+            raise ValueError("Нет столбцов: " + ", ".join(sorted(missing_columns)))
         
         try:
             df_r = pd.read_csv(URL_REVIEWS, dtype=str)
@@ -61,122 +155,164 @@ df_base, df_reviews = load_all_data()
 
 if df_base is not None:
     st.title("🏍️ Подвеска Voge DS900X")
-    st.caption("Данные синхронизируются с Google Таблицей клуба.")
 
-    # Блок ввода параметров
-    st.header("📋 Ваши параметры")
-    user_weight = st.number_input("Вес в экипировке, кг", min_value=65, max_value=110, value=90, step=1)
-    modes = df_base['mode'].unique().tolist()
+    user_weight = st.number_input(
+        "Вес райдера в экипировке, кг", min_value=60, max_value=150, value=90, step=1
+    )
+    modes = df_base["mode"].dropna().unique().tolist()
+    if not modes:
+        st.error("В таблице клуба нет режимов загрузки.")
+        st.stop()
     loading_mode = st.selectbox("Режим загрузки", modes)
+    mode_slug = loading_mode.casefold().replace("ё", "е")
 
-    rounded_weight = int(round(user_weight / 5.0) * 5)
-    rounded_weight = max(70, min(rounded_weight, 105))
-    st.info(f"Ближайшая категория в базе: {rounded_weight} кг.")
+    overloaded = False
+    if "вдвоем" in mode_slug or "кофры" in mode_slug or user_weight >= 140:
+        with st.expander("Проверить полную загрузку"):
+            extra_load = st.number_input(
+                "Пассажир в экипировке, кофры, багаж и аксессуары вместе, кг",
+                min_value=0, max_value=250, value=None, step=1,
+            )
+            st.caption(f"Допустимая нагрузка по руководству Voge — {MAX_PAYLOAD_KG} кг.")
+        if extra_load is not None:
+            total_load = user_weight + extra_load
+            overloaded = total_load > MAX_PAYLOAD_KG
+            if overloaded:
+                st.error(f"Полная загрузка {total_load} кг превышает предел Voge на {total_load - MAX_PAYLOAD_KG} кг.")
+            else:
+                st.caption(f"Полная загрузка {total_load} кг из {MAX_PAYLOAD_KG} кг.")
 
-    # Фильтруем строку из базы данных
-    df_base['weight'] = pd.to_numeric(df_base['weight'], errors='coerce').fillna(0).astype(int)
-    filtered_df = df_base[(df_base['weight'] == rounded_weight) & (df_base['mode'] == loading_mode)]
+    result = suspension_setting(df_base, user_weight, loading_mode)
+    status = None
+    b_notes = ""
+    b_p_szh = b_p_otb = b_p_tur = b_z_pred = b_z_otb = None
+    if result is None:
+        st.info("В таблице клуба пока нет полной строки для этого режима. Запишите свой замер сэга.")
+    elif not overloaded:
+        values, status, low, high, limited, b_notes = result
+        b_p_szh = values["comp_f"]
+        b_p_otb = values["reb_f"]
+        b_p_tur = values["preload_f"]
+        b_z_pred = values["preload_r"]
+        b_z_otb = values["reb_r"]
+        if status == "table":
+            st.subheader("Стартовый сетап клуба")
+            st.caption(f"Строка таблицы для {low} кг.")
+        elif status == "interpolated":
+            st.subheader("Стартовый сетап клуба")
+            st.caption(f"Расчёт между строками {low} и {high} кг для выбранной загрузки.")
+        else:
+            st.subheader("Ближайший сетап в таблице")
+            st.info(f"Данных для {user_weight} кг пока нет. Показана справка для {low} кг. "
+                    "Для своего веса начните с замера сэга при выбранной загрузке.")
+        if limited:
+            st.caption("В исходной строке или расчёте задний преднатяг выше 25 щелчков. "
+                       "Показано 25 по принятой клубной границе; проверьте положение регулятора и сэг.")
 
-    # Извлекаем данные напрямую
-    if not filtered_df.empty:
-        vals = filtered_df.values.tolist()[0]
-        b_p_szh = str(vals[2]).strip()
-        b_p_otb = str(vals[3]).strip()
-        b_p_tur = str(vals[4]).strip()
-        b_z_pred = str(vals[5]).strip()
-        b_z_otb = str(vals[6]).strip()
-        b_notes = str(vals[7]).strip() if len(vals) > 7 else ""
+        # Передняя вилка — компактный вид с переносом подсказок
+        st.markdown(f"""
+        <div class="fork-card">
+            <div class="card-title">⚙️ Передняя вилка</div>
+            <div class="value-container">
+                <span class="value-label">• Преднатяг пружины<br><small style="color: #888888; font-style: italic;">(по рискам)</small></span>
+                <span class="value-badge-blue">{b_p_tur:g} рис.</span>
+            </div>
+            <div class="value-container">
+                <span class="value-label">• <i>Гидравлика Сжатия</i><br><small style="color: #888888; font-style: italic;">(от полностью закрученного)</small></span>
+                <span class="value-badge-blue">{b_p_szh} щелч.</span>
+            </div>
+            <div class="value-container">
+                <span class="value-label">• <i>Гидравлика Отбоя</i><br><small style="color: #888888; font-style: italic;">(от полностью закрученного)</small></span>
+                <span class="value-badge-blue">{b_p_otb} щелч.</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Задний амортизатор — компактный вид с переносом подсказок
+        st.markdown(f"""
+        <div class="shock-card">
+            <div class="card-title">⚙️ Задний амортизатор</div>
+            <div class="value-container">
+                <span class="value-label">• Преднатяг пружины<br><small style="color: #888888; font-style: italic;">(от полностью распущенного)</small></span>
+                <span class="value-badge-green">{b_z_pred} щелч.</span>
+            </div>
+            <div class="value-container">
+                <span class="value-label">• <i>Гидравлика Отбоя</i><br><small style="color: #888888; font-style: italic;">(от полностью закрученного)</small></span>
+                <span class="value-badge-green">{b_z_otb} щелч.</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
         
-        if b_p_tur.endswith('.0'): b_p_tur = b_p_tur[:-2]
-        if b_p_szh.endswith('.0'): b_p_szh = b_p_szh[:-2]
-        if b_p_otb.endswith('.0'): b_p_otb = b_p_otb[:-2]
-        if b_z_pred.endswith('.0'): b_z_pred = b_z_pred[:-2]
-        if b_z_otb.endswith('.0'): b_z_otb = b_z_otb[:-2]
-    else:
-        b_p_szh, b_p_otb, b_p_tur, b_z_pred, b_z_otb, b_notes = "12", "9", "3", "17", "17", ""
+    if b_notes:
+        st.warning(b_notes)
 
-    st.header("🛠️ Рекомендуемые настройки")
-    
-    # Передняя вилка — компактный вид с переносом подсказок
-    st.markdown(f"""
-    <div class="fork-card">
-        <div class="card-title">⚙️ Передняя вилка</div>
-        <div class="value-container">
-            <span class="value-label">• Преднатяг пружины<br><small style="color: #888888; font-style: italic;">(по рискам)</small></span>
-            <span class="value-badge-blue">{b_p_tur} рис.</span>
-        </div>
-        <div class="value-container">
-            <span class="value-label">• <i>Гидравлика Сжатия</i><br><small style="color: #888888; font-style: italic;">(от полностью закрученного)</small></span>
-            <span class="value-badge-blue">{b_p_szh} щелч.</span>
-        </div>
-        <div class="value-container">
-            <span class="value-label">• <i>Гидравлика Отбоя</i><br><small style="color: #888888; font-style: italic;">(от полностью закрученного)</small></span>
-            <span class="value-badge-blue">{b_p_otb} щелч.</span>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    pressure_rows = "".join(
+        f'<div class="pressure-line"><span>{label}</span>'
+        f'<b>Перед {front} · Зад {rear} бар</b></div>'
+        for label, front, rear in tire_pressures(loading_mode)
+    )
+    st.markdown(
+        f'<div class="tire-card"><div class="card-title">Давление на холодных шинах</div>'
+        f'{pressure_rows}</div>', unsafe_allow_html=True,
+    )
+    if "кофры" in mode_slug:
+        st.caption("В руководстве есть две пары давления — соло и с пассажиром. "
+                   "Отдельной нормы для кофров нет.")
+    st.markdown(f"[Руководство Voge, стр. 78]({MANUAL_URL})")
 
-    # Задний амортизатор — компактный вид с переносом подсказок
-    st.markdown(f"""
-    <div class="shock-card">
-        <div class="card-title">⚙️ Задний амортизатор</div>
-        <div class="value-container">
-            <span class="value-label">• Преднатяг пружины<br><small style="color: #888888; font-style: italic;">(от полностью распущенного)</small></span>
-            <span class="value-badge-green">{b_z_pred} щелч.</span>
-        </div>
-        <div class="value-container">
-            <span class="value-label">• <i>Гидравлика Отбоя</i><br><small style="color: #888888; font-style: italic;">(от полностью закрученного)</small></span>
-            <span class="value-badge-green">{b_z_otb} щелч.</span>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    if b_notes and b_notes != "nan" and b_notes.strip() != "":
-        st.warning(f"📝 **Памятка:** {b_notes}")
+    with st.expander("Проверить рабочий сэг", expanded=status == "reference" or result is None):
+        st.caption("Ориентир клуба — 58 мм спереди и 60 мм сзади, около 30% хода. "
+                   "Сэг — разница между полностью разгруженной подвеской и положением "
+                   "мотоцикла с райдером и выбранной загрузкой.")
+        st.caption("Если сэг больше ориентира, добавьте преднатяг и повторите замер. "
+                   "Если меньше — уменьшите. На вилке выставляйте одинаковый преднатяг на обоих перьях.")
+        for axle, target, travel in (("Перед", 58, 194), ("Зад", 60, 198)):
+            measured = st.number_input(
+                f"{axle} · замер, мм", min_value=1, max_value=travel, value=None, step=1,
+                key=f"sag_{axle}_{user_weight}_{loading_mode}",
+            )
+            if measured is not None:
+                difference = measured - target
+                st.caption(f"{measured / travel:.0%} хода · "
+                           + (f"{difference:+d} мм от ориентира" if difference else "совпадает с ориентиром"))
 
-        # ==================== ВЫВОД ОТЗЫВОВ КЛУБА (КАРУСЕЛЬ С ЛАЙКОМ НАВЕРХУ) ====================
-    st.header("👥 Живой опыт других владельцев")
-    matching_reviews = df_reviews[(df_reviews['Вес'] == str(rounded_weight)) & (df_reviews['Загрузка'] == loading_mode)]
-    
+    st.subheader("Отзывы владельцев")
+    review_weights = pd.to_numeric(df_reviews["Вес"].map(number), errors="coerce")
+    weight_distance = review_weights.sub(user_weight).abs()
+    matching_reviews = df_reviews.assign(_distance=weight_distance)
+    matching_reviews = matching_reviews.loc[
+        (matching_reviews["Загрузка"] == loading_mode) & (matching_reviews["_distance"] <= 5)
+    ].sort_values("_distance", kind="stable")
+
     if not matching_reviews.empty:
         total_reviews = len(matching_reviews)
         
-        # Инициализируем индекс текущего отзыва в памяти приложения
-        if 'review_index' not in st.session_state:
+        context = (user_weight, loading_mode)
+        if st.session_state.get("review_context") != context:
+            st.session_state.review_context = context
             st.session_state.review_index = 0
-            
-        if st.session_state.review_index >= total_reviews:
-            st.session_state.review_index = 0
-
+        st.session_state.review_index %= total_reviews
         r_row = matching_reviews.iloc[st.session_state.review_index]
-        
-        # Считываем количество лайков из 12-го столбца таблицы
-        likes_count = r_row.get('Лайки', '0')
-        if str(likes_count) == 'nan' or not str(likes_count).isdigit():
-            likes_count = '0'
+        review_name = str(r_row["Имя"])
+        review_text = str(r_row["Причина_Текст"])
+        review_weight = number(r_row["Вес"])
+        likes_count = max(0, int(number(r_row.get("Лайки")) or 0))
 
-        # Уникальный суффикс для кнопок
-        unique_suffix = f"{rounded_weight}_{loading_mode.replace(' ', '_')}"
-        like_id = f"liked_{r_row['Имя']}_{unique_suffix}"
-        has_liked = st.session_state.get(like_id, False)
-        btn_text = f"❤️ Полезно ({likes_count})" if not has_liked else f"💖 Отменить лайк ({likes_count})"
-
-        # 1. ПЕРВЫЙ УРОВЕНЬ: КНОПКА ЛАЙКА НА САМОМ ВЕРХУ (на всю ширину)
-        like_btn_key = f"like_btn_{unique_suffix}_{st.session_state.review_index}_{likes_count}"
-        if st.button(btn_text, key=like_btn_key, use_container_width=True):
+        # Apps Script identifies reviews by the exact name and review text.
+        liked_reviews = st.session_state.setdefault("liked_reviews", {})
+        like_id = (review_name, review_text)
+        has_liked = liked_reviews.get(like_id, False)
+        btn_text = f"Отменить лайк ({likes_count})" if has_liked else f"♡ Полезно ({likes_count})"
+        unique_suffix = f"{user_weight}_{loading_mode}"
+        if st.button(btn_text, key=f"like_{unique_suffix}", use_container_width=True):
             try:
-                if not has_liked:
-                    requests.post(WEB_APP_URL, json={"action": "like", "name": str(r_row['Имя']), "review_text": str(r_row['Причина_Текст'])})
-                    st.session_state[like_id] = True
-                    st.toast(f"Вы круты! Лайк для {r_row['Имя']} учтен 💥")
-                else:
-                    requests.post(WEB_APP_URL, json={"action": "unlike", "name": str(r_row['Имя']), "review_text": str(r_row['Причина_Текст'])})
-                    st.session_state[like_id] = False
-                    st.toast(f"Лайк для {r_row['Имя']} успешно отменен ↩️")
-                st.cache_data.clear()
+                post_review_action({"action": "unlike" if has_liked else "like",
+                                    "name": review_name, "review_text": review_text})
+                liked_reviews[like_id] = not has_liked
+                load_all_data.clear()
                 st.rerun()
-            except Exception:
-                st.error("Ошибка связи с сервером таблицы.")
+            except (requests.RequestException, ValueError):
+                st.error("Таблица не подтвердила обновление лайка.")
 
         # 2. ВТОРОЙ УРОВЕНЬ: КНОПКИ ЛИСТАНИЯ (Создаем две колонки в один ряд)
         col_nav1, col_nav2 = st.columns(2)
@@ -192,88 +328,101 @@ if df_base is not None:
             st.rerun()
 
         # 3. ТРЕТИЙ УРОВЕНЬ: САМА КАРТОЧКА ОТЗЫВА
-        p_s = r_row['Перед_Реальный_Сэг_мм'] if 'Перед_Реальный_Сэг_мм' in df_reviews.columns else "58"
-        z_s = r_row['Зад_Реальный_Сэг_мм'] if 'Зад_Реальный_Сэг_мм' in df_reviews.columns else "60"
+        p_s = sag_text(r_row.get("Перед_Реальный_Сэг_мм"))
+        z_s = sag_text(r_row.get("Зад_Реальный_Сэг_мм"))
+        axle_note = (
+            "<p class='sub-text'>Замер сэга взят для справки. "
+            "1 щелчок сжатия — личная настройка Акселя.</p>"
+            if review_name.strip().casefold().replace("ё", "е") == "аксель" else ""
+        )
         
         st.markdown(f"""
         <div class="user-review" style="margin-top: 15px;">
             <div class="review-header" style="display: flex; justify-content: space-between;">
-                <span>🏍️ Райдер: {r_row['Имя']} | {rounded_weight} кг | {loading_mode}</span>
+                <span>🏍️ Райдер: {html_text(review_name)} | {review_weight:g} кг | {html_text(loading_mode)}</span>
                 <span style="color: #FF9F1C; font-weight: bold;">Отзыв {st.session_state.review_index + 1} из {total_reviews}</span>
             </div>
             <p class="sub-text" style="line-height: 1.5;">
                 <b>⚙️ Передняя вилка:</b>
-                <br>• Преднатяг: {r_row['Перед_Преднатяг_Витков']} рис.
-                <br>• Сжатие: {r_row['Перед_Сжатие']} щелч.
-                <br>• Отбой: {r_row['Перед_Отбой']} щелч.
-                <br><span style="color: #888888;">📊 Реальный Сэг переда: {p_s} мм</span>
+                <br>• Преднатяг: {html_text(r_row['Перед_Преднатяг_Витков'])} рис.
+                <br>• Сжатие: {html_text(r_row['Перед_Сжатие'])} щелч.
+                <br>• Отбой: {html_text(r_row['Перед_Отбой'])} щелч.
+                <br><span style="color: #888888;">📊 Реальный Сэг переда: {p_s}</span>
                 <br><br>
                 <b>⚙️ Задний амортизатор:</b>
-                <br>• Преднатяг: {r_row['Зад_Преднатяг']} щелч.
-                <br>• Отбой: {r_row['Зад_Отбой']} щелч.
-                <br><span style="color: #888888;">📊 Реальный Сэг зада: {z_s} мм</span>
+                <br>• Преднатяг: {html_text(r_row['Зад_Преднатяг'])} щелч.
+                <br>• Отбой: {html_text(r_row['Зад_Отбой'])} щелч.
+                <br><span style="color: #888888;">📊 Реальный Сэг зада: {z_s}</span>
             </p>
             <p style="margin-top: 12px; font-size: 0.9em; color: #FF9F1C; line-height: 1.3; border-top: 1px solid #2D2D2D; padding-top: 8px;">
-                💬 <b>Почему изменил:</b> {r_row['Причина_Текст']}
+                💬 <b>Почему изменил:</b> {review_text_html(r_row["Причина_Текст"])}
             </p>
+            {axle_note}
         </div>
         """, unsafe_allow_html=True)
     else:
-        st.info("Альтернативных сетапов для этих параметров пока нет. Станьте первым!")
+        st.caption("Для этой загрузки пока нет отзывов в пределах ±5 кг.")
 
     # ==================== УМНАЯ ФОРМА ОТПРАВКИ ОТЗЫВА ====================
     if 'show_form' not in st.session_state: st.session_state.show_form = False
     if 'show_success' not in st.session_state: st.session_state.show_success = False
 
     if st.session_state.show_success:
-        st.success("✅ Отзыв успешно опубликован! Сетап мгновенно добавлен в базу.")
+        st.success("Отзыв опубликован.")
         st.session_state.show_success = False
 
-    form_label = "❌ Закрыть форму написания отзыва" if st.session_state.show_form else "✍️ Добавить свой вариант настройки / Предложить изменения"
+    form_label = "Закрыть форму" if st.session_state.show_form else "Добавить свой сетап"
     if st.button(form_label, key="toggle_form_btn"):
         st.session_state.show_form = not st.session_state.show_form
         st.rerun()
 
     if st.session_state.show_form:
-        with st.container(border=True):
-            user_name = st.text_input("Ваш ник в чате / Имя", placeholder="Например: Voge_Rider_77")
-            col1, col2 = st.columns(2)
-            with col1:
-                st.markdown("**⚙️ Ваша передняя вилка:**")
-                u_p_tur = st.number_input("Преднатяг (риски)", value=float(b_p_tur) if b_p_tur.replace('.', '', 1).isdigit() else 3.0, step=0.5, key="up1")
-                u_p_szh = st.number_input("Сжатие (щелчки)", value=int(b_p_szh) if b_p_szh.isdigit() else 12, step=1, key="up2")
-                u_p_otb = st.number_input("Отбой (щелчки)", value=int(b_p_otb) if b_p_otb.isdigit() else 9, step=1, key="up3")
-                u_p_seg = st.number_input("Реальный Сэг переда (мм)", value=58, step=1, key="up4")
-            with col2:
-                st.markdown("**⚙️ Ваш задний амортизатор:**")
-                u_z_pred = st.number_input("Преднатяг (щелчки)", value=int(b_z_pred) if b_z_pred.isdigit() else 17, step=1, key="uz1")
-                u_z_otb = st.number_input("Отбой (щелчки)", value=int(b_z_otb) if b_z_otb.isdigit() else 17, step=1, key="uz2")
-                u_z_seg = st.number_input("Замеренный Сэг зада (мм)", value=60, step=1, key="uz3")
-                
-            user_comment = st.text_area("Почему вы выбрали такие настройки?", placeholder="Например: Базовый преднатяг вилки показался мягким...")
-            
-            if st.button("🚀 Опубликовать сетап в приложении", key="submit_review_btn"):
+        form_key = f"review_{user_weight}_{loading_mode}"
+        use_defaults = status in ("table", "interpolated")
+        with st.form(key=form_key):
+            user_name = st.text_input("Ваш ник или имя")
+            st.markdown("**Передняя вилка**")
+            u_p_tur = st.number_input("Преднатяг вилки, риски", min_value=0.0,
+                                      value=b_p_tur if use_defaults else None,
+                                      step=0.25, format="%.2f")
+            u_p_szh = st.number_input("Сжатие вилки, щелчки", min_value=0,
+                                      value=b_p_szh if use_defaults else None, step=1)
+            u_p_otb = st.number_input("Отбой вилки, щелчки", min_value=0,
+                                      value=b_p_otb if use_defaults else None, step=1)
+            u_p_seg = st.number_input("Измеренный сэг вилки, мм", min_value=1, max_value=194,
+                                      value=st.session_state.get(f"sag_Перед_{user_weight}_{loading_mode}"),
+                                      step=1)
+            st.markdown("**Задний амортизатор**")
+            u_z_pred = st.number_input("Преднатяг амортизатора, щелчки", min_value=0,
+                                       value=b_z_pred if use_defaults else None, step=1)
+            u_z_otb = st.number_input("Отбой амортизатора, щелчки", min_value=0,
+                                      value=b_z_otb if use_defaults else None, step=1)
+            u_z_seg = st.number_input("Измеренный задний сэг, мм", min_value=1, max_value=198,
+                                      value=st.session_state.get(f"sag_Зад_{user_weight}_{loading_mode}"),
+                                      step=1)
+            st.caption("Если сэг не измеряли, оставьте поля пустыми.")
+            user_comment = st.text_area("Почему выбрали эти настройки?")
+            if st.form_submit_button("Опубликовать", use_container_width=True):
                 if not user_name.strip() or not user_comment.strip():
-                    st.error("Заполните ваше имя и причину изменений перед отправкой.")
+                    st.error("Заполните имя и причину выбора настроек.")
+                elif None in (u_p_tur, u_p_szh, u_p_otb, u_z_pred, u_z_otb):
+                    st.error("Укажите все пять фактических регулировок.")
                 else:
                     payload = {
-                        "name": str(user_name), "weight": str(rounded_weight), "mode": str(loading_mode),
+                        "name": user_name.strip(), "weight": str(user_weight), "mode": loading_mode,
                         "p_seg": str(u_p_tur), "p_szh": str(u_p_szh), "p_otb": str(u_p_otb),
-                        "z_pred": str(u_z_pred), "z_otb": str(u_z_otb), 
-                        "p_real_seg": str(u_p_seg), "z_seg": str(u_z_seg),
-                        "text": str(user_comment)
+                        "z_pred": str(u_z_pred), "z_otb": str(u_z_otb),
+                        "p_real_seg": str(u_p_seg or 0), "z_seg": str(u_z_seg or 0),
+                        "text": user_comment.strip(),
                     }
                     try:
-                        res = requests.post(WEB_APP_URL, json=payload)
-                        if res.status_code == 200:
-                            st.cache_data.clear()
-                            st.session_state.show_form = False
-                            st.session_state.show_success = True
-                            st.rerun()
-                        else:
-                            st.error("Ошибка сервера при отправке.")
-                    except Exception:
-                        st.error("Не удалось связаться с базой данных.")
+                        post_review_action(payload)
+                        load_all_data.clear()
+                        st.session_state.show_form = False
+                        st.session_state.show_success = True
+                        st.rerun()
+                    except (requests.RequestException, ValueError):
+                        st.error("Таблица не подтвердила публикацию отзыва.")
 
     # Раздел стандартных шпаргалок и руководств
     st.header("📖 Руководство: Как правильно крутить?")
@@ -319,15 +468,3 @@ if df_base is not None:
     with st.expander("❌ Морда мотоцикла задирается, руль пустой и легкий на скорости"):
         st.error("**Симптом:** Из-за пассажира или багажа корма сильно просела, разгрузив переднее колесо. Теряется стабильность.")
         st.success("**Решение (Мало преднатяга сзади):** Мотоцикл слишком просел назад. Накрутите черную выносную рукоятку **Преднатяга задней пружины** по часовой стрелке на 2–3 щелчка больше, чтобы вернуть правильную геометрию.")
-
-    # Базовая инструкция по направлению вращения
-    st.header("📖 Базовые правила регулировки")
-    col1, col2 = st.columns(2)
-    with col1:
-        st.info("**Передняя вилка (KYB):**\n\n• **Сжатие (COMP) и Отбой (TEN):** Считаются от полностью закрытого состояния. Закрутите винт по часовой стрелке до упора (**Hard**), а затем отсчитывайте клики против часовой стрелки (в сторону **Soft**).")
-    with col2:
-        st.info("**Задний амортизатор:**\n\n• **Преднатяг:** Вращайте выносную рукоятку на правом боку. Отсчет идет от полностью распущенного состояния (крайнее положение против часовой стрелки).\n\n• **Отбой:** Регулятор снизу амортизатора.")
-
-    with st.expander("📊 Теория сэга и ходов подвески"):
-        st.write("• **Ход передней вилки:** 194 мм &nbsp;|&nbsp; **Ход заднего амортизатора:** 198 мм")
-        st.write("• **Целевой рабочий Сэг (SAG):** спереди ~58 мм, сзади ~60 мм. Это 30% от полного хода подвески под нагрузкой.")
