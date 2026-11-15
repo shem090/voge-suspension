@@ -97,11 +97,11 @@ def suspension_setting(base, weight, mode):
     return settings, status, int(left["weight"]), int(right["weight"]), limited, str(notes).strip()
 
 
-def tire_pressures(mode):
+def tire_pressures(mode, extra_cargo=False):
     mode = mode.casefold().replace("ё", "е")
     if "вдвоем" in mode:
         return (("С пассажиром", "2,5", "2,9"),)
-    if "кофры" in mode:
+    if "кофры" in mode or extra_cargo:
         return (("Соло", "2,2", "2,5"), ("С пассажиром", "2,5", "2,9"))
     return (("Соло", "2,2", "2,5"),)
 
@@ -166,21 +166,25 @@ if df_base is not None:
     loading_mode = st.selectbox("Режим загрузки", modes)
     mode_slug = loading_mode.casefold().replace("ё", "е")
 
-    overloaded = False
-    if "вдвоем" in mode_slug or "кофры" in mode_slug or user_weight >= 140:
-        with st.expander("Проверить полную загрузку"):
-            extra_load = st.number_input(
-                "Пассажир в экипировке, кофры, багаж и аксессуары вместе, кг",
-                min_value=0, max_value=250, value=None, step=1,
-            )
-            st.caption(f"Допустимая нагрузка по руководству Voge — {MAX_PAYLOAD_KG} кг.")
-        if extra_load is not None:
-            total_load = user_weight + extra_load
-            overloaded = total_load > MAX_PAYLOAD_KG
-            if overloaded:
-                st.error(f"Полная загрузка {total_load} кг превышает предел Voge на {total_load - MAX_PAYLOAD_KG} кг.")
-            else:
-                st.caption(f"Полная загрузка {total_load} кг из {MAX_PAYLOAD_KG} кг.")
+    has_passenger = "вдвоем" in mode_slug
+    has_cases = "кофры" in mode_slug
+    with st.expander("Вес пассажира и багажа", expanded=has_passenger or has_cases):
+        passenger_weight = st.number_input(
+            "Пассажир в экипировке, кг", min_value=1, max_value=250, value=None, step=1,
+        ) if has_passenger else 0
+        cargo_weight = st.number_input(
+            "Кофры, багаж и дополнительные аксессуары, кг",
+            min_value=0, max_value=250, value=None if has_cases else 0, step=1,
+            key=f"cargo_weight_{loading_mode}",
+        )
+        st.caption(f"Допустимая нагрузка мотоцикла по руководству Voge — {MAX_PAYLOAD_KG} кг.")
+    counted_load = user_weight + (passenger_weight or 0) + (cargo_weight or 0)
+    load_complete = passenger_weight is not None and cargo_weight is not None
+    load_remaining = MAX_PAYLOAD_KG - counted_load
+    overloaded = load_remaining < 0
+    if overloaded:
+        st.error(f"Введённая нагрузка {counted_load} кг превышает предел Voge на {-load_remaining} кг. "
+                 "Уменьшите загрузку.")
 
     result = suspension_setting(df_base, user_weight, loading_mode)
     status = None
@@ -250,19 +254,30 @@ if df_base is not None:
     if b_notes:
         st.warning(b_notes)
 
-    pressure_rows = "".join(
-        f'<div class="pressure-line"><span>{label}</span>'
-        f'<b>Перед {front} · Зад {rear} бар</b></div>'
-        for label, front, rear in tire_pressures(loading_mode)
-    )
+    extra_cargo = bool(cargo_weight)
+    pressure_rows = '<div class="pressure-line">Уменьшите загрузку до допустимой.</div>'
+    if not overloaded:
+        pressure_rows = "".join(
+            f'<div class="pressure-line"><span>{label}</span>'
+            f'<b>Перед {front} · Зад {rear} бар</b></div>'
+            for label, front, rear in tire_pressures(loading_mode, extra_cargo)
+        )
     st.markdown(
         f'<div class="tire-card"><div class="card-title">Давление на холодных шинах</div>'
         f'{pressure_rows}</div>', unsafe_allow_html=True,
     )
-    if "кофры" in mode_slug:
-        st.caption("В руководстве есть две пары давления — соло и с пассажиром. "
-                   "Отдельной нормы для кофров нет.")
-    st.markdown(f"[Руководство Voge, стр. 78]({MANUAL_URL})")
+    if not overloaded:
+        if load_complete:
+            st.caption(f"Общая нагрузка — {counted_load} кг из {MAX_PAYLOAD_KG} кг. "
+                       f"Остаток до предела — {load_remaining} кг.")
+        else:
+            st.caption(f"Пока учтено {counted_load} кг. Заполните оставшиеся поля загрузки, "
+                       "чтобы увидеть итог.")
+        if not has_passenger and (has_cases or extra_cargo):
+            st.caption("Две пары приведены для справки. У Voge нет отдельной нормы для соло с багажом.")
+        st.caption("Voge указывает давление для соло и для поездки с пассажиром. "
+                   "Таблицы давления по килограммам в руководстве нет.")
+    st.markdown(f"[Руководство Voge, стр. 4 и 78]({MANUAL_URL})")
 
     with st.expander("Проверить рабочий сэг", expanded=(status == "reference" or result is None
                                                         or b_z_pred == REAR_PRELOAD_CAP)):
