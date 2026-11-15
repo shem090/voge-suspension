@@ -189,7 +189,7 @@ if df_base is not None:
     if result is None:
         st.info("В таблице клуба пока нет полной строки для этого режима. Запишите свой замер сэга.")
     elif not overloaded:
-        values, status, low, high, limited, b_notes = result
+        values, status, low, high, _, b_notes = result
         b_p_szh = values["comp_f"]
         b_p_otb = values["reb_f"]
         b_p_tur = values["preload_f"]
@@ -197,7 +197,7 @@ if df_base is not None:
         b_z_otb = values["reb_r"]
         if status == "table":
             st.subheader("Стартовый сетап клуба")
-            st.caption(f"Строка таблицы для {low} кг.")
+            st.caption(f"Точка клубной таблицы для {low} кг. Стартовые значения для штатной подвески.")
         elif status == "interpolated":
             st.subheader("Стартовый сетап клуба")
             st.caption(f"Расчёт между строками {low} и {high} кг для выбранной загрузки.")
@@ -205,9 +205,9 @@ if df_base is not None:
             st.subheader("Ближайший сетап в таблице")
             st.info(f"Данных для {user_weight} кг пока нет. Показана справка для {low} кг. "
                     "Для своего веса начните с замера сэга при выбранной загрузке.")
-        if limited:
-            st.caption("В исходной строке или расчёте задний преднатяг выше 25 щелчков. "
-                       "Показано 25 по принятой клубной границе; проверьте положение регулятора и сэг.")
+        if b_z_pred >= REAR_PRELOAD_CAP:
+            st.warning(f"Задний преднатяг достиг принятой границы {REAR_PRELOAD_CAP} щелчков. "
+                       "Проверьте сэг с выбранной загрузкой и предел регулятора на своём мотоцикле.")
 
         # Передняя вилка — компактный вид с переносом подсказок
         st.markdown(f"""
@@ -218,11 +218,11 @@ if df_base is not None:
                 <span class="value-badge-blue">{b_p_tur:g} рис.</span>
             </div>
             <div class="value-container">
-                <span class="value-label">• <i>Гидравлика Сжатия</i><br><small style="color: #888888; font-style: italic;">(от полностью закрученного)</small></span>
+                <span class="value-label">• Сжатие (COMP)<br><small>Правое перо · щелчки от закрытого</small></span>
                 <span class="value-badge-blue">{b_p_szh} щелч.</span>
             </div>
             <div class="value-container">
-                <span class="value-label">• <i>Гидравлика Отбоя</i><br><small style="color: #888888; font-style: italic;">(от полностью закрученного)</small></span>
+                <span class="value-label">• Отбой (REB)<br><small>Левое перо · щелчки от закрытого</small></span>
                 <span class="value-badge-blue">{b_p_otb} щелч.</span>
             </div>
         </div>
@@ -237,11 +237,15 @@ if df_base is not None:
                 <span class="value-badge-green">{b_z_pred} щелч.</span>
             </div>
             <div class="value-container">
-                <span class="value-label">• <i>Гидравлика Отбоя</i><br><small style="color: #888888; font-style: italic;">(от полностью закрученного)</small></span>
+                <span class="value-label">• Отбой (REB)<br><small>Внизу амортизатора · щелчки от закрытого</small></span>
                 <span class="value-badge-green">{b_z_otb} щелч.</span>
             </div>
         </div>
         """, unsafe_allow_html=True)
+        st.caption("Сжатие и отбой: аккуратно закройте регулировку по часовой до упора. "
+                   "Отсчитайте щелчки против часовой. К H — сильнее, к S — слабее.")
+        st.caption("Сначала проверьте сэг под нагрузкой. При дорожной проверке меняйте "
+                   "один регулятор по одному щелчку.")
         
     if b_notes:
         st.warning(b_notes)
@@ -260,7 +264,8 @@ if df_base is not None:
                    "Отдельной нормы для кофров нет.")
     st.markdown(f"[Руководство Voge, стр. 78]({MANUAL_URL})")
 
-    with st.expander("Проверить рабочий сэг", expanded=status == "reference" or result is None):
+    with st.expander("Проверить рабочий сэг", expanded=(status == "reference" or result is None
+                                                        or b_z_pred == REAR_PRELOAD_CAP)):
         st.caption("Ориентир клуба — 58 мм спереди и 60 мм сзади, около 30% хода. "
                    "Сэг — разница между полностью разгруженной подвеской и положением "
                    "мотоцикла с райдером и выбранной загрузкой.")
