@@ -75,6 +75,8 @@ st.markdown("""
 .moto-review-rows { display: grid; gap: .45rem; margin-top: .65rem; }
 .moto-review-line { display: grid; grid-template-columns: minmax(3.1rem, .6fr) 2fr; gap: .45rem; border-top: 1px solid var(--moto-line); padding-top: .45rem; }
 .moto-review-line span, .moto-review-sag { font-size: .77rem; color: var(--moto-muted); }
+.moto-review-context { color: #b5d7f5; font-weight: 650; }
+.moto-review-value { color: var(--moto-accent); font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .moto-review-sag { margin-top: .4rem; }
 .moto-review-comment { line-height: 1.45; border-top: 1px solid var(--moto-line); margin-top: .6rem; padding-top: .55rem; overflow-wrap: anywhere; }
 .stApp [data-testid="stExpander"] details {
@@ -92,11 +94,12 @@ st.markdown("""
 .moto-advice { display: grid; gap: .55rem; }
 .moto-advice-card {
     --moto-advice-accent: #accced;
-    background: #1c2835;
+    background: #29465e;
     border-inline-start: 2px solid var(--moto-advice-accent);
     border-radius: .55rem;
     padding: .68rem .8rem;
 }
+.moto-advice-card:not(.moto-advice-action) { box-shadow: inset 0 0 0 1px #44627d; }
 .moto-advice-action { --moto-advice-accent: var(--moto-accent); background: #2c261c; }
 .moto-advice-label {
     display: block;
@@ -396,7 +399,7 @@ if df_base is not None:
             if FORK_GUIDE_PHOTO.is_file():
                 st.image(str(FORK_GUIDE_PHOTO), width=480)
                 st.caption("Зелёная стрелка — винт сжатия или отбоя, в зависимости от пера. "
-                           "Красная — шестигранник преднатяга. Синяя — риски преднатяга.")
+                           "Красная — винт регулировки преднатяга. Синяя — риски преднатяга.")
             st.markdown("**Амортизатор:** отбой — винт снизу. Преднатяг — ручка справа, щелчки по часовой от полностью распущенного положения.")
             st.caption("Для сжатия и отбоя аккуратно закройте регулировку по часовой и отсчитайте щелчки против часовой. "
                        "Первый ощутимый щелчок после упора — позиция 1. К H — сильнее, к S — слабее. "
@@ -520,10 +523,19 @@ if df_base is not None:
                 <strong class="moto-review-name">{html_text(review_name)}</strong>
                 <span class="moto-review-count">{st.session_state.review_index + 1} / {total_reviews}</span>
             </div>
-            <div class="moto-panel-meta">{review_weight:g} кг · {html_text(loading_mode)}</div>
+            <div class="moto-panel-meta"><strong class="moto-review-context">{review_weight:g} кг · {html_text(loading_mode)}</strong></div>
             <div class="moto-review-rows">
-                <div class="moto-review-line"><b>Перед</b><span>Преднатяг {html_text(r_row['Перед_Преднатяг_Витков'])} рис. · Сжатие {html_text(r_row['Перед_Сжатие'])} · Отбой {html_text(r_row['Перед_Отбой'])}</span></div>
-                <div class="moto-review-line"><b>Зад</b><span>Преднатяг {html_text(r_row['Зад_Преднатяг'])} щелч. · Отбой {html_text(r_row['Зад_Отбой'])}</span></div>
+                <div class="moto-review-line">
+                    <b>Перед</b>
+                    <span>Преднатяг <strong class="moto-review-value">{html_text(r_row['Перед_Преднатяг_Витков'])} рис.</strong>
+                    · Сжатие <strong class="moto-review-value">{html_text(r_row['Перед_Сжатие'])}</strong>
+                    · Отбой <strong class="moto-review-value">{html_text(r_row['Перед_Отбой'])}</strong></span>
+                </div>
+                <div class="moto-review-line">
+                    <b>Зад</b>
+                    <span>Преднатяг <strong class="moto-review-value">{html_text(r_row['Зад_Преднатяг'])} щелч.</strong>
+                    · Отбой <strong class="moto-review-value">{html_text(r_row['Зад_Отбой'])}</strong></span>
+                </div>
             </div>
             <div class="moto-review-sag">Сэг · перед {front_sag} · зад {rear_sag}</div>
             <div class="moto-review-comment">{review_text_html(r_row["Причина_Текст"])}</div>
