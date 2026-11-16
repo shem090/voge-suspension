@@ -11,13 +11,16 @@ st.set_page_config(page_title="Подвеска Voge DS900X", page_icon="🏍️
 
 st.markdown("""
 <style>
-.stApp {
+:root {
     --moto-bg: #13171c;
     --moto-card: #1b2027;
     --moto-line: #353d47;
     --moto-text: #f0f2f5;
     --moto-muted: #b0bac6;
     --moto-accent: #ffd27f;
+}
+.stApp {
+    color-scheme: dark;
     background: var(--moto-bg);
     color: var(--moto-text);
 }
@@ -82,11 +85,33 @@ st.markdown("""
     margin-bottom: .2rem;
 }
 .moto-advice .moto-advice-card p { margin: 0; line-height: 1.5; }
-.stApp [data-baseweb="input"], .stApp [data-baseweb="select"] > div, .stApp [data-baseweb="textarea"] {
-    background: var(--moto-card); border-color: var(--moto-line); color: var(--moto-text);
+.stApp :is([data-baseweb="input"], [data-baseweb="base-input"], [data-baseweb="textarea"], [data-baseweb="select"] > div),
+[data-baseweb="popover"] :is([data-baseweb="menu"], [role="listbox"], [role="option"]) {
+    background-color: var(--moto-card) !important;
+    color: var(--moto-text) !important;
+    color-scheme: dark;
 }
-.stApp :is(input, textarea, [data-baseweb="select"] button) { color: var(--moto-text); }
-.stApp [data-baseweb="select"] :is(span, svg) { color: var(--moto-text); fill: currentColor; }
+.stApp :is([data-baseweb="input"], [data-baseweb="textarea"], [data-baseweb="select"] > div) {
+    border-color: var(--moto-line);
+}
+.stApp :is([data-baseweb="input"], [data-baseweb="textarea"]) :is(input, textarea) {
+    background-color: var(--moto-card) !important;
+}
+.stApp :is([data-baseweb="input"], [data-baseweb="textarea"], [data-baseweb="select"]) :is(input, textarea) {
+    color: var(--moto-text) !important;
+    -webkit-text-fill-color: var(--moto-text);
+    caret-color: var(--moto-text);
+}
+.stApp :is([data-baseweb="input"], [data-baseweb="textarea"], [data-baseweb="select"]) :is(input, textarea)::placeholder {
+    color: var(--moto-muted);
+    -webkit-text-fill-color: var(--moto-muted);
+}
+.stApp [data-baseweb="select"] > div :is(div, [role="combobox"], button, span, svg) {
+    color: var(--moto-text) !important;
+}
+[data-baseweb="popover"] [role="option"]:is(:hover, [aria-selected="true"]) {
+    background-color: var(--moto-line) !important;
+}
 .stApp [data-testid="stNumberInput"] button { color: var(--moto-text); background: var(--moto-card); }
 .stApp [data-testid="stButton"] button { background: var(--moto-card); color: var(--moto-text); border-color: var(--moto-line); }
 .stApp [data-testid="stButton"] button:hover { border-color: var(--moto-accent); color: var(--moto-accent); }
