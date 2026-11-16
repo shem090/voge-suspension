@@ -20,8 +20,9 @@ st.markdown("""
     --moto-accent: #ffd27f;
 }
 .stApp {
-    color-scheme: dark;
     background: var(--moto-bg);
+}
+.stApp :is(.moto-hero, .moto-panel, .moto-advice, [data-testid="stExpander"] summary) {
     color: var(--moto-text);
 }
 .stApp :is(h1, h2, h3, label, [data-testid="stMarkdownContainer"] p) { color: var(--moto-text); }
@@ -85,34 +86,7 @@ st.markdown("""
     margin-bottom: .2rem;
 }
 .moto-advice .moto-advice-card p { margin: 0; line-height: 1.5; }
-.stApp :is([data-baseweb="input"], [data-baseweb="base-input"], [data-baseweb="textarea"], [data-baseweb="select"] > div),
-[data-baseweb="popover"] :is([data-baseweb="menu"], [role="listbox"], [role="option"]) {
-    background-color: var(--moto-card) !important;
-    color: var(--moto-text) !important;
-    color-scheme: dark;
-}
-.stApp :is([data-baseweb="input"], [data-baseweb="textarea"], [data-baseweb="select"] > div) {
-    border-color: var(--moto-line);
-}
-.stApp :is([data-baseweb="input"], [data-baseweb="textarea"]) :is(input, textarea) {
-    background-color: var(--moto-card) !important;
-}
-.stApp :is([data-baseweb="input"], [data-baseweb="textarea"], [data-baseweb="select"]) :is(input, textarea) {
-    color: var(--moto-text) !important;
-    -webkit-text-fill-color: var(--moto-text);
-    caret-color: var(--moto-text);
-}
-.stApp :is([data-baseweb="input"], [data-baseweb="textarea"], [data-baseweb="select"]) :is(input, textarea)::placeholder {
-    color: var(--moto-muted);
-    -webkit-text-fill-color: var(--moto-muted);
-}
-.stApp [data-baseweb="select"] > div :is(div, [role="combobox"], button, span, svg) {
-    color: var(--moto-text) !important;
-}
-[data-baseweb="popover"] [role="option"]:is(:hover, [aria-selected="true"]) {
-    background-color: var(--moto-line) !important;
-}
-.stApp [data-testid="stNumberInput"] button { color: var(--moto-text); background: var(--moto-card); }
+/* Поля и выпадающие списки используют согласованные цвета темы Streamlit. */
 .stApp [data-testid="stButton"] button { background: var(--moto-card); color: var(--moto-text); border-color: var(--moto-line); }
 .stApp [data-testid="stButton"] button:hover { border-color: var(--moto-accent); color: var(--moto-accent); }
 .stApp [data-testid="stButton"] button:focus-visible { outline: 2px solid var(--moto-accent); }
