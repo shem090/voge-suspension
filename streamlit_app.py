@@ -102,7 +102,7 @@ REAR_PRELOAD_CAP = 25  # Наблюдение Shem090, а не подтверж�
 MAX_PAYLOAD_KG = 205
 MANUAL_URL = "https://voge.gr/wp-content/uploads/2021/09/DS900X-user-manual-.pdf"
 REFERENCE_RIDER_KG = 75
-REFERENCE_PASSENGER_KG = 50
+REFERENCE_PASSENGER_KG = 55
 REFERENCE_CARGO_KG = 25
 
 
@@ -169,7 +169,7 @@ def rear_lookup_weight(rider_weight, passenger_weight, cargo_weight, has_passeng
 
 
 def estimated_pressure_by_payload(payload):
-    progress = (payload - REFERENCE_RIDER_KG) / REFERENCE_PASSENGER_KG
+    progress = (payload - REFERENCE_RIDER_KG) / (MAX_PAYLOAD_KG - REFERENCE_RIDER_KG)
     progress = min(1, max(0, progress))
     return 2.2 + 0.3 * progress, 2.5 + 0.4 * progress
 
@@ -242,7 +242,9 @@ if df_base is not None:
     has_cases = "кофры" in mode_slug
     with st.expander("Вес пассажира и багажа", expanded=has_passenger or has_cases):
         passenger_weight = st.number_input(
-            "Пассажир в экипировке, кг", min_value=1, max_value=250, value=None, step=1,
+            "Пассажир в экипировке, кг", min_value=1, max_value=250,
+            value=REFERENCE_PASSENGER_KG, step=1,
+            help="По умолчанию 55 кг. Укажите фактический вес, если он известен.",
         ) if has_passenger else 0
         cargo_weight = st.number_input(
             "Кофры, багаж и дополнительные аксессуары, кг",
@@ -351,13 +353,13 @@ if df_base is not None:
 
     if not overloaded:
         with st.expander("Оценка давления по общей нагрузке"):
-            st.caption(f"Условная шкала: {REFERENCE_RIDER_KG} кг — 2,2 / 2,5 бар, "
-                       f"{REFERENCE_RIDER_KG + REFERENCE_PASSENGER_KG} кг — 2,5 / 2,9 бар. "
-                       "Массы — допущение, в мануале Voge указаны только режимы поездки.")
+            st.caption(f"Справочная шкала: до {REFERENCE_RIDER_KG} кг — 2,2 / 2,5 бар, "
+                       f"при {MAX_PAYLOAD_KG} кг — 2,5 / 2,9 бар. "
+                       "Весовые точки шкалы выбраны для калькулятора. Voge указывает давление по режимам поездки.")
             if has_passenger:
                 st.caption("Для поездки с пассажиром используйте дорожную пару Voge в карточке выше.")
             elif load_complete:
-                front, rear = (f"{value:.1f}".replace(".", ",")
+                front, rear = (f"{value:.2f}".rstrip("0").replace(".", ",")
                                for value in estimated_pressure_by_payload(counted_load))
                 st.write(f"**Оценка при {counted_load} кг** — перед {front} · зад {rear} бар.")
                 st.caption("Для накачки ориентируйтесь на руководство Voge и наклейку своего мотоцикла.")
