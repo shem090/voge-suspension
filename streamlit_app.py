@@ -159,7 +159,8 @@ def suspension_setting(base, weight, mode):
     settings = {}
     for column in SETTING_COLUMNS:
         value = left[column] + (right[column] - left[column]) * fraction
-        settings[column] = round(float(value), 2) if column == "preload_f" else math.floor(value + 0.5)
+        step = 0.5 if column == "preload_f" else 1
+        settings[column] = math.floor(value / step + 0.5) * step
 
     limited = settings["preload_r"] > REAR_PRELOAD_CAP
     settings["preload_r"] = min(settings["preload_r"], REAR_PRELOAD_CAP)
