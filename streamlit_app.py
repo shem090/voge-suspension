@@ -8,36 +8,85 @@ from html import escape
 # Настройка страницы (Темная тема и мобильный вид)
 st.set_page_config(page_title="Подвеска Voge DS900X", page_icon="🏍️", layout="centered")
 
-# Стилизация интерфейса (Крупные индикаторы цифр, карточки, кастомные цвета)
 st.markdown("""
-    <style>
-    .main { background-color: #121212; color: #FFFFFF; }
-    .stApp { background-color: #121212; }
-    .block-container { max-width: 44rem; padding: 2.2rem 1rem 2.5rem; }
-    .fork-card, .shock-card, .tire-card { color: #F1F5FA; }
-    .tire-card { background: #202632; border: 1px solid #455371; border-radius: 10px; padding: 14px; margin-bottom: 12px; }
-    .pressure-line { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin: 7px 0; }
-    .pressure-line b { color: #DCE8FF; }
-    @media (max-width: 480px) { .block-container { padding-top: 1.6rem; } }
-    
-    /* Компактные карточки подвески */
-    .fork-card { background-color: #1A2332; padding: 14px; border-radius: 10px; border-left: 5px solid #3A86FF; margin-bottom: 12px; }
-    .shock-card { background-color: #1A2E26; padding: 14px; border-radius: 10px; border-left: 5px solid #38B000; margin-bottom: 12px; }
-    
-    /* Уменьшенные шрифты заголовков в карточках */
-    .card-title { font-size: 1.15em; font-weight: bold; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
-    
-    .user-review { background-color: #1E1E1E; border: 1px solid #2D2D2D; padding: 15px; border-radius: 8px; margin-bottom: 12px; }
-    .review-header { color: #888888; font-size: 0.85em; font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid #2D2D2D; padding-bottom: 5px; }
-    .orange-box { background-color: #2D2214; border: 1px solid #FF9F1C; padding: 15px; border-radius: 8px; color: #FF9F1C; margin: 10px 0; }
-    .sub-text { font-size: 0.9em; color: #B0B0B0; margin: 2px 0; }
-    
-    /* Оптимизированные контейнеры цифр для мобилок */
-    .value-container { display: flex; align-items: center; justify-content: space-between; margin: 8px 0; min-height: 36px; }
-    .value-label { font-size: 0.95em; color: #E0E0E0; padding-right: 10px; line-height: 1.2; }
-    .value-badge-blue { background-color: #3A86FF; color: #FFFFFF; font-size: 1.05em; font-weight: bold; padding: 6px 12px; border-radius: 6px; min-width: 80px; text-align: center; white-space: nowrap; }
-    .value-badge-green { background-color: #38B000; color: #FFFFFF; font-size: 1.05em; font-weight: bold; padding: 6px 12px; border-radius: 6px; min-width: 80px; text-align: center; white-space: nowrap; }
-    </style>
+<style>
+.stApp {
+    --moto-bg: #13171c;
+    --moto-card: #1b2027;
+    --moto-line: #353d47;
+    --moto-text: #f0f2f5;
+    --moto-muted: #b0bac6;
+    --moto-accent: #ffd27f;
+    background: var(--moto-bg);
+    color: var(--moto-text);
+}
+.stApp :is(h1, h2, h3, label, [data-testid="stMarkdownContainer"] p) { color: var(--moto-text); }
+.stApp [data-testid="stCaptionContainer"] p { color: var(--moto-muted); }
+.stApp [data-testid="stMarkdownContainer"] a { color: var(--moto-accent); }
+[data-testid="stHeader"] { background: transparent; height: auto; }
+[data-testid="stToolbar"], [data-testid="stDecoration"] { display: none; }
+.block-container { max-width: 46rem; padding: 2rem 1rem 4rem; }
+[data-testid="stVerticalBlock"] { gap: .72rem; }
+.moto-hero { border-top: 2px solid var(--moto-accent); padding: .88rem 0 .25rem; }
+.moto-hero .model {
+    color: var(--moto-accent); font-size: .74rem; font-weight: 700; letter-spacing: .14em;
+}
+.moto-hero h1 { margin: .2rem 0 0; padding: 0; font-size: clamp(2rem, 7vw, 3.15rem); line-height: 1.05; letter-spacing: -.045em; }
+.stApp h2, .stApp h3 { font-size: 1.22rem; line-height: 1.25; margin: 0; padding: .4rem 0 .15rem; }
+.moto-panel { padding: .85rem .9rem; border: 1px solid var(--moto-line); border-radius: .85rem; background: var(--moto-card); }
+.moto-panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: .65rem; margin-bottom: .7rem; }
+.moto-panel-title { font-size: .94rem; font-weight: 700; line-height: 1.2; }
+.moto-panel-meta { color: var(--moto-muted); font-size: .73rem; line-height: 1.25; }
+.moto-setup-grid { display: grid; grid-template-columns: 1.25fr 1fr; gap: .55rem; }
+.moto-metrics { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
+.moto-metric { min-width: 0; padding: .48rem .45rem 0; border-top: 1px solid var(--moto-line); }
+.moto-metric:first-child { padding-left: 0; }
+.moto-metric + .moto-metric { border-left: 1px solid var(--moto-line); }
+.moto-label { display: block; color: var(--moto-muted); font-size: .74rem; line-height: 1.15; }
+.moto-value {
+    display: block; margin-top: .25rem; color: var(--moto-text); font-size: 1.52rem;
+    line-height: 1; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.04em;
+}
+.moto-unit { color: var(--moto-muted); font-size: .67rem; }
+.moto-pressure-line { display: grid; grid-template-columns: 1.1fr 1fr 1fr; align-items: center; gap: .35rem; }
+.moto-pressure-line + .moto-pressure-line { margin-top: .55rem; }
+.moto-pressure-line .moto-value { color: var(--moto-accent); }
+.moto-load { border-top: 1px solid var(--moto-line); padding-top: .6rem; margin-top: .65rem; }
+.moto-review-head { display: flex; justify-content: space-between; align-items: baseline; gap: .75rem; }
+.moto-review-name { font-size: .98rem; font-weight: 700; overflow-wrap: anywhere; min-width: 0; }
+.moto-review-count { color: var(--moto-accent); font-size: .76rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.moto-review-rows { display: grid; gap: .45rem; margin-top: .65rem; }
+.moto-review-line { display: grid; grid-template-columns: minmax(3.1rem, .6fr) 2fr; gap: .45rem; border-top: 1px solid var(--moto-line); padding-top: .45rem; }
+.moto-review-line span, .moto-review-sag { font-size: .77rem; color: var(--moto-muted); }
+.moto-review-sag { margin-top: .4rem; }
+.moto-review-comment { line-height: 1.45; border-top: 1px solid var(--moto-line); margin-top: .6rem; padding-top: .55rem; overflow-wrap: anywhere; }
+.stApp [data-testid="stExpander"] details { border-color: var(--moto-line); border-radius: .7rem; }
+.stApp [data-testid="stExpander"] summary { min-height: 2.55rem; }
+.stApp [data-baseweb="input"], .stApp [data-baseweb="select"] > div, .stApp [data-baseweb="textarea"] {
+    background: var(--moto-card); border-color: var(--moto-line); color: var(--moto-text);
+}
+.stApp :is(input, textarea, [data-baseweb="select"] button) { color: var(--moto-text); }
+.stApp [data-baseweb="select"] :is(span, svg) { color: var(--moto-text); fill: currentColor; }
+.stApp [data-testid="stNumberInput"] button { color: var(--moto-text); background: var(--moto-card); }
+.stApp [data-testid="stButton"] button { background: var(--moto-card); color: var(--moto-text); border-color: var(--moto-line); }
+.stApp [data-testid="stButton"] button:hover { border-color: var(--moto-accent); color: var(--moto-accent); }
+.stApp [data-testid="stButton"] button:focus-visible { outline: 2px solid var(--moto-accent); }
+.st-key-ride_inputs [data-testid="stHorizontalBlock"], .st-key-review_navigation [data-testid="stHorizontalBlock"] {
+    display: grid; gap: .5rem;
+}
+.st-key-ride_inputs [data-testid="stHorizontalBlock"] { grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); }
+.st-key-review_navigation [data-testid="stHorizontalBlock"] { grid-template-columns: minmax(0, .55fr) minmax(0, .55fr) minmax(0, 2fr); }
+:is(.st-key-ride_inputs, .st-key-review_navigation) [data-testid="stColumn"] { width: 100% !important; min-width: 0 !important; }
+.st-key-review_navigation button { min-height: 2.75rem; }
+@media (max-width: 560px) {
+    .block-container { padding: .8rem .85rem 3.25rem; }
+    .moto-setup-grid { grid-template-columns: 1fr; }
+    .moto-hero { padding-top: .7rem; }
+}
+@media (max-width: 345px) {
+    .st-key-ride_inputs [data-testid="stHorizontalBlock"] { grid-template-columns: 1fr; }
+}
+</style>
 """, unsafe_allow_html=True)
 
 # Ссылки из Секретов Streamlit
@@ -170,16 +219,20 @@ def load_all_data():
 df_base, df_reviews = load_all_data()
 
 if df_base is not None:
-    st.title("🏍️ Подвеска Voge DS900X")
+    st.markdown('<div class="moto-hero"><span class="model">VOGE DS900X</span>'
+                '<h1>Подвеска</h1></div>', unsafe_allow_html=True)
 
-    user_weight = st.number_input(
-        "Вес райдера в экипировке, кг", min_value=60, max_value=150, value=90, step=1
-    )
     modes = df_base["mode"].dropna().unique().tolist()
     if not modes:
         st.error("В таблице клуба нет режимов загрузки.")
         st.stop()
-    loading_mode = st.selectbox("Режим загрузки", modes)
+    with st.container(key="ride_inputs"):
+        weight_column, mode_column = st.columns([1, 1.25])
+        user_weight = weight_column.number_input(
+            "Райдер, кг", min_value=60, max_value=150, value=90, step=1,
+            help="Введите вес в экипировке.",
+        )
+        loading_mode = mode_column.selectbox("Загрузка", modes)
     mode_slug = loading_mode.casefold().replace("ё", "е")
 
     has_passenger = "вдвоем" in mode_slug
@@ -216,87 +269,73 @@ if df_base is not None:
         b_z_pred = values["preload_r"]
         b_z_otb = values["reb_r"]
         if status == "table":
-            st.subheader("Стартовый сетап клуба")
-            st.caption(f"Точка клубной таблицы для {low} кг. Стартовые значения для штатной подвески.")
+            st.subheader("Стартовые настройки")
         elif status == "interpolated":
-            st.subheader("Стартовый сетап клуба")
-            st.caption(f"Расчёт между строками {low} и {high} кг для выбранной загрузки.")
+            st.subheader("Стартовые настройки")
+            st.caption(f"Расчёт между точками {low} и {high} кг.")
         else:
-            st.subheader("Ближайший сетап в таблице")
-            st.info(f"Данных для {user_weight} кг пока нет. Показана справка для {low} кг. "
-                    "Для своего веса начните с замера сэга при выбранной загрузке.")
+            st.subheader("Ближайшие настройки")
+            st.info(f"Для {user_weight} кг показана ближайшая точка {low} кг. Проверьте сэг под нагрузкой.")
         if b_z_pred >= REAR_PRELOAD_CAP:
             st.warning(f"Задний преднатяг достиг принятой границы {REAR_PRELOAD_CAP} щелчков. "
                        "Проверьте сэг с выбранной загрузкой и предел регулятора на своём мотоцикле.")
 
-        # Передняя вилка — компактный вид с переносом подсказок
+        front_preload = f"{b_p_tur:g}".replace(".", ",")
         st.markdown(f"""
-        <div class="fork-card">
-            <div class="card-title">⚙️ Передняя вилка</div>
-            <div class="value-container">
-                <span class="value-label">• Преднатяг пружины<br><small style="color: #888888; font-style: italic;">(по рискам)</small></span>
-                <span class="value-badge-blue">{b_p_tur:g} рис.</span>
+        <div class="moto-setup-grid">
+          <section class="moto-panel" id="perednyaya-vilka" aria-label="Передняя вилка">
+            <div class="moto-panel-head"><b class="moto-panel-title">Передняя вилка</b></div>
+            <div class="moto-metrics">
+              <div class="moto-metric"><span class="moto-label">Преднатяг</span><strong class="moto-value">{front_preload}</strong><span class="moto-unit">рис.</span></div>
+              <div class="moto-metric"><span class="moto-label">Сжатие</span><strong class="moto-value">{b_p_szh}</strong><span class="moto-unit">щелч.</span></div>
+              <div class="moto-metric"><span class="moto-label">Отбой</span><strong class="moto-value">{b_p_otb}</strong><span class="moto-unit">щелч.</span></div>
             </div>
-            <div class="value-container">
-                <span class="value-label">• Сжатие (COMP)<br><small>Правое перо · щелчки от закрытого</small></span>
-                <span class="value-badge-blue">{b_p_szh} щелч.</span>
+          </section>
+          <section class="moto-panel" aria-label="Задний амортизатор">
+            <div class="moto-panel-head"><b class="moto-panel-title">Задний амортизатор</b></div>
+            <div class="moto-metrics">
+              <div class="moto-metric"><span class="moto-label">Преднатяг</span><strong class="moto-value">{b_z_pred}</strong><span class="moto-unit">щелч.</span></div>
+              <div class="moto-metric"><span class="moto-label">Отбой</span><strong class="moto-value">{b_z_otb}</strong><span class="moto-unit">щелч.</span></div>
             </div>
-            <div class="value-container">
-                <span class="value-label">• Отбой (REB)<br><small>Левое перо · щелчки от закрытого</small></span>
-                <span class="value-badge-blue">{b_p_otb} щелч.</span>
-            </div>
+          </section>
         </div>
         """, unsafe_allow_html=True)
-
-        # Задний амортизатор — компактный вид с переносом подсказок
-        st.markdown(f"""
-        <div class="shock-card">
-            <div class="card-title">⚙️ Задний амортизатор</div>
-            <div class="value-container">
-                <span class="value-label">• Преднатяг пружины<br><small style="color: #888888; font-style: italic;">(от полностью распущенного)</small></span>
-                <span class="value-badge-green">{b_z_pred} щелч.</span>
-            </div>
-            <div class="value-container">
-                <span class="value-label">• Отбой (REB)<br><small>Внизу амортизатора · щелчки от закрытого</small></span>
-                <span class="value-badge-green">{b_z_otb} щелч.</span>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        st.caption("Сжатие и отбой: аккуратно закройте регулировку по часовой до упора. "
-                   "Отсчитайте щелчки против часовой. К H — сильнее, к S — слабее.")
-        st.caption("Сначала проверьте сэг под нагрузкой. При дорожной проверке меняйте "
-                   "один регулятор по одному щелчку.")
-        
-    if b_notes:
-        st.warning(b_notes)
+        with st.expander("Как выставить щелчки"):
+            st.markdown("**Вилка:** сжатие — правое перо, отбой — левое. Преднатяг выставляется по рискам на обоих перьях.")
+            st.markdown("**Амортизатор:** отбой — винт снизу. Преднатяг — ручка справа, щелчки по часовой от полностью распущенного положения.")
+            st.caption("Для сжатия и отбоя аккуратно закройте регулировку по часовой и отсчитайте щелчки против часовой. "
+                       "К H — сильнее, к S — слабее. Проверьте сэг под нагрузкой и меняйте по одному щелчку за раз.")
+            if b_notes:
+                st.caption(b_notes)
 
     extra_cargo = bool(cargo_weight)
-    pressure_rows = '<div class="pressure-line">Уменьшите загрузку до допустимой.</div>'
+    pressure_rows = '<div class="moto-panel-meta">Уменьшите загрузку до допустимой.</div>'
+    load_summary = ""
     if not overloaded:
         pressure_rows = "".join(
-            f'<div class="pressure-line"><span>{label}</span>'
-            f'<b>Перед {front} · Зад {rear} бар</b></div>'
+            f'<div class="moto-pressure-line"><span class="moto-label">{label}</span>'
+            f'<div><span class="moto-label">Перед</span><strong class="moto-value">{front}</strong></div>'
+            f'<div><span class="moto-label">Зад</span><strong class="moto-value">{rear}</strong></div></div>'
             for label, front, rear in tire_pressures(loading_mode, extra_cargo)
         )
-    st.markdown(
-        f'<div class="tire-card"><div class="card-title">Дорожное давление Voge · на холодную</div>'
-        f'{pressure_rows}</div>', unsafe_allow_html=True,
-    )
-    if not overloaded:
         if load_complete:
-            st.caption(f"Общая нагрузка — {counted_load} кг из {MAX_PAYLOAD_KG} кг. "
-                       f"Остаток до предела — {load_remaining} кг.")
+            load_summary = f"Загрузка {counted_load} / {MAX_PAYLOAD_KG} кг · запас {load_remaining} кг"
         else:
-            st.caption(f"Пока учтено {counted_load} кг. Заполните оставшиеся поля загрузки, "
-                       "чтобы увидеть итог.")
+            load_summary = f"Учтено {counted_load} кг · заполните оставшиеся поля загрузки"
         if not has_passenger and (has_cases or extra_cargo):
-            st.caption("Две пары приведены для справки. У Voge нет отдельной нормы для соло с багажом.")
-        st.caption("Voge указывает давление для соло и для поездки с пассажиром. "
-                   "Таблицы давления по килограммам в руководстве нет.")
-    st.markdown(f"[Руководство Voge, стр. 4 и 78]({MANUAL_URL})")
+            load_summary += "<br>Для соло с багажом отдельного значения в мануале Voge нет."
+    st.markdown(
+        '<section class="moto-panel" aria-label="Дорожное давление Voge">'
+        '<div class="moto-panel-head"><b class="moto-panel-title">Дорожное давление</b>'
+        '<span class="moto-panel-meta">бар · на холодную</span></div>'
+        f'{pressure_rows}'
+        + (f'<div class="moto-panel-meta moto-load">{load_summary}</div>' if load_summary else "")
+        + '</section>', unsafe_allow_html=True,
+    )
+    st.caption(f"[Руководство Voge · стр. 4 и 78]({MANUAL_URL})")
 
     if not overloaded:
-        with st.expander("Расчётный минимум давления по нагрузке на колёса"):
+        with st.expander("Расчётный минимум давления"):
             st.caption("Инженерная оценка для штатных индексов 54V / 69V. "
                        "Дорожные значения Voge приведены выше.")
             use_scales = st.checkbox("Ввести показания весов")
@@ -383,64 +422,53 @@ if df_base is not None:
         liked_reviews = st.session_state.setdefault("liked_reviews", {})
         like_id = (review_name, review_text)
         has_liked = liked_reviews.get(like_id, False)
-        btn_text = f"Отменить лайк ({likes_count})" if has_liked else f"♡ Полезно ({likes_count})"
+        btn_text = f"♥ Полезно · {likes_count}" if has_liked else f"♡ Полезно · {likes_count}"
         unique_suffix = f"{user_weight}_{loading_mode}"
-        if st.button(btn_text, key=f"like_{unique_suffix}", use_container_width=True):
-            try:
-                post_review_action({"action": "unlike" if has_liked else "like",
-                                    "name": review_name, "review_text": review_text})
-                liked_reviews[like_id] = not has_liked
-                load_all_data.clear()
-                st.rerun()
-            except (requests.RequestException, ValueError):
-                st.error("Таблица не подтвердила обновление лайка.")
-
-        # 2. ВТОРОЙ УРОВЕНЬ: КНОПКИ ЛИСТАНИЯ (Создаем две колонки в один ряд)
-        col_nav1, col_nav2 = st.columns(2)
-        
-        # Кнопка НАЗАД рендерится строго в левой колонке
-        if col_nav1.button("⬅️ Назад", key=f"btn_prev_{unique_suffix}_{st.session_state.review_index}", use_container_width=True):
-            st.session_state.review_index = (st.session_state.review_index - 1) % total_reviews
-            st.rerun()
-                
-        # Кнопка ВПЕРЕД рендерится строго в правой колонке
-        if col_nav2.button("Вперед ➡️", key=f"btn_next_{unique_suffix}_{st.session_state.review_index}", use_container_width=True):
-            st.session_state.review_index = (st.session_state.review_index + 1) % total_reviews
-            st.rerun()
-
-        # 3. ТРЕТИЙ УРОВЕНЬ: САМА КАРТОЧКА ОТЗЫВА
-        p_s = sag_text(r_row.get("Перед_Реальный_Сэг_мм"))
-        z_s = sag_text(r_row.get("Зад_Реальный_Сэг_мм"))
+        front_sag = sag_text(r_row.get("Перед_Реальный_Сэг_мм"))
+        rear_sag = sag_text(r_row.get("Зад_Реальный_Сэг_мм"))
         axle_note = (
-            "<p class='sub-text'>Замер сэга взят для справки. "
-            "1 щелчок сжатия — личная настройка Акселя.</p>"
+            '<div class="moto-review-sag">Замер сэга взят для справки. '
+            '1 щелчок сжатия — личная настройка Акселя.</div>'
             if review_name.strip().casefold().replace("ё", "е") == "аксель" else ""
         )
-        
+
         st.markdown(f"""
-        <div class="user-review" style="margin-top: 15px;">
-            <div class="review-header" style="display: flex; justify-content: space-between;">
-                <span>🏍️ Райдер: {html_text(review_name)} | {review_weight:g} кг | {html_text(loading_mode)}</span>
-                <span style="color: #FF9F1C; font-weight: bold;">Отзыв {st.session_state.review_index + 1} из {total_reviews}</span>
+        <section class="moto-panel">
+            <div class="moto-review-head">
+                <strong class="moto-review-name">{html_text(review_name)}</strong>
+                <span class="moto-review-count">{st.session_state.review_index + 1} / {total_reviews}</span>
             </div>
-            <p class="sub-text" style="line-height: 1.5;">
-                <b>⚙️ Передняя вилка:</b>
-                <br>• Преднатяг: {html_text(r_row['Перед_Преднатяг_Витков'])} рис.
-                <br>• Сжатие: {html_text(r_row['Перед_Сжатие'])} щелч.
-                <br>• Отбой: {html_text(r_row['Перед_Отбой'])} щелч.
-                <br><span style="color: #888888;">📊 Реальный Сэг переда: {p_s}</span>
-                <br><br>
-                <b>⚙️ Задний амортизатор:</b>
-                <br>• Преднатяг: {html_text(r_row['Зад_Преднатяг'])} щелч.
-                <br>• Отбой: {html_text(r_row['Зад_Отбой'])} щелч.
-                <br><span style="color: #888888;">📊 Реальный Сэг зада: {z_s}</span>
-            </p>
-            <p style="margin-top: 12px; font-size: 0.9em; color: #FF9F1C; line-height: 1.3; border-top: 1px solid #2D2D2D; padding-top: 8px;">
-                💬 <b>Почему изменил:</b> {review_text_html(r_row["Причина_Текст"])}
-            </p>
+            <div class="moto-panel-meta">{review_weight:g} кг · {html_text(loading_mode)}</div>
+            <div class="moto-review-rows">
+                <div class="moto-review-line"><b>Перед</b><span>Преднатяг {html_text(r_row['Перед_Преднатяг_Витков'])} рис. · Сжатие {html_text(r_row['Перед_Сжатие'])} · Отбой {html_text(r_row['Перед_Отбой'])}</span></div>
+                <div class="moto-review-line"><b>Зад</b><span>Преднатяг {html_text(r_row['Зад_Преднатяг'])} щелч. · Отбой {html_text(r_row['Зад_Отбой'])}</span></div>
+            </div>
+            <div class="moto-review-sag">Сэг · перед {front_sag} · зад {rear_sag}</div>
+            <div class="moto-review-comment">{review_text_html(r_row["Причина_Текст"])}</div>
             {axle_note}
-        </div>
+        </section>
         """, unsafe_allow_html=True)
+        with st.container(key="review_navigation"):
+            if total_reviews > 1:
+                previous_col, next_col, like_col = st.columns([.55, .55, 2])
+                if previous_col.button("←", key=f"prev_{unique_suffix}", help="Предыдущий отзыв", use_container_width=True):
+                    st.session_state.review_index = (st.session_state.review_index - 1) % total_reviews
+                    st.rerun()
+                if next_col.button("→", key=f"next_{unique_suffix}", help="Следующий отзыв", use_container_width=True):
+                    st.session_state.review_index = (st.session_state.review_index + 1) % total_reviews
+                    st.rerun()
+            else:
+                like_col = st
+            if like_col.button(btn_text, key=f"like_{unique_suffix}", use_container_width=True,
+                               help="Отменить лайк" if has_liked else "Отметить отзыв как полезный"):
+                try:
+                    post_review_action({"action": "unlike" if has_liked else "like",
+                                        "name": review_name, "review_text": review_text})
+                    liked_reviews[like_id] = not has_liked
+                    load_all_data.clear()
+                    st.rerun()
+                except (requests.RequestException, ValueError):
+                    st.error("Таблица не подтвердила обновление лайка.")
     else:
         st.caption("Для этой загрузки пока нет отзывов в пределах ±5 кг.")
 
@@ -506,9 +534,9 @@ if df_base is not None:
                         st.error("Таблица не подтвердила публикацию отзыва.")
 
     # Раздел стандартных шпаргалок и руководств
-    st.header("📖 Руководство: Как правильно крутить?")
+    st.header("Руководство")
     
-    with st.expander("🛠️ ИНСТРУКЦИЯ ДЛЯ ПЕРЕДНЕЙ ВИЛКИ"):
+    with st.expander("Передняя вилка"):
         st.markdown("### ⚙️ Регулировка вилки Voge DS900X")
         st.write("🛑 **ПРАВИЛО ОТСЧЕТА ГИДРАВЛИКИ:** Все клики гидравлики (Сжатие и Отбой) считаются **ОТ ПОЛНОСТЬЮ ЗАКРУЧЕННОГО** состояния!")
         st.markdown("""
@@ -518,7 +546,7 @@ if df_base is not None:
         st.write("🌀 **ПРЕДНАТЯГ ВИЛКИ (Риски):** Регулируется большой гайкой под ключ сверху пера.")
         st.write("• Отсчет идет по физическим насечкам (рискам) на гайке регулятора.")
 
-    with st.expander("🛠️ ИНСТРУКЦИЯ ДЛЯ ЗАДНЕГО АМОРТИЗАТОРА"):
+    with st.expander("Задний амортизатор"):
         st.markdown("### ⚙️ Регулировка заднего амортизатора")
         st.write("🌀 **ПРЕДНАТЯГ ПРУЖИНЫ (Щелчки):** Регулируется большой выносной пластиковой рукояткой на правом боку мотоцикла.")
         st.write("• Отсчет идет **от полностью распущенного состояния** (крутить против часовой стрелки до упора, когда крутилка станет идти совсем легко).")
@@ -528,24 +556,24 @@ if df_base is not None:
         st.write("• Открутите против часовой стрелки (в сторону **S**) на нужное количество кликов из калькулятора.")
 
         # ==================== БЛОК ДИАГНОСТИКИ ПО ДИНАМИКЕ ====================
-    st.header("🛠️ Диагностика поведения (Что крутить, если...)")
+    st.header("Диагностика на дороге")
     
-    with st.expander("❌ Мотоцикл раскачивается как лодка (после кочек или волн на асфальте)"):
+    with st.expander("Раскачка после кочек"):
         st.error("**Симптом:** Корма или перед долго совершают колебания вверх-вниз, мотоцикл «плывет» в повороте.")
         st.success("**Решение (Слишком мягкий ОТБОЙ):** Подвеске не хватает контроля возврата пружины. Закрутите регулятор **Отбоя (Rebound)** на вилке или заднем амортизаторе по часовой стрелке на 1-2 клика (в сторону **H / Hard**).")
 
-    with st.expander("❌ Мотоцикл слишком жесткий на мелких неровностях"):
+    with st.expander("Жёсткость на мелких неровностях"):
         st.error("**Симптом:** Каждый стык, мелкий камушек или трещина на асфальте бьют в руль или по позвоночнику.")
         st.success("**Решение (Слишком жесткое СЖАТИЕ):** Открутите регулятор **Сжатия (Compression)** против часовой стрелки на 1-2 клика (в сторону **S / Soft**).")
 
-    with st.expander("❌ Вилка слишком сильно «клюет» при торможении"):
+    with st.expander("Клевок при торможении"):
         st.error("**Симптом:** При нажатии на передний тормоз мотоцикл слишком резко и глубоко проседает вперед.")
         st.success("**Решение (Слишком мягкое СЖАТИЕ спереди):** Закрутите регулятор **Сжатия (Comp)** на передней вилке по часовой стрелке на 2 клика (в сторону **H / Hard**).")
 
-    with st.expander("❌ Мотоцикл плохо держит траекторию (колеса «скачут» в повороте)"):
+    with st.expander("Колёса скачут в повороте"):
         st.error("**Симптом:** На неровном асфальте или «стиральной доске» колеса будто теряют зацеп и прыгают.")
         st.success("**Решение (Слишком жесткий ОТБОЙ):** Подвеска зажимается внизу и не успевает возвращаться обратно. Открутите регулятор **Отбоя (Rebound)** на 1-2 клика против часовой стрелки (в сторону **S / Soft**).")
 
-    with st.expander("❌ Морда мотоцикла задирается, руль пустой и легкий на скорости"):
+    with st.expander("Переднее колесо разгружено"):
         st.error("**Симптом:** Из-за пассажира или багажа корма сильно просела, разгрузив переднее колесо. Теряется стабильность.")
         st.success("**Решение (Мало преднатяга сзади):** Мотоцикл слишком просел назад. Накрутите черную выносную рукоятку **Преднатяга задней пружины** по часовой стрелке на 2–3 щелчка больше, чтобы вернуть правильную геометрию.")
