@@ -104,7 +104,7 @@ MAX_PAYLOAD_KG = 205
 MANUAL_URL = "https://voge.gr/wp-content/uploads/2021/09/DS900X-user-manual-.pdf"
 REFERENCE_RIDER_KG = 75
 REFERENCE_PASSENGER_KG = 55
-REFERENCE_CARGO_KG = 25
+REFERENCE_CARGO_KG = 24
 
 
 def number(value):
@@ -240,7 +240,7 @@ if df_base is not None:
         ) if has_passenger else 0
         cargo_weight = st.number_input(
             "Кофры, багаж и дополнительные аксессуары, кг",
-            min_value=0, max_value=250, value=None if has_cases else 0, step=1,
+            min_value=0, max_value=250, value=REFERENCE_CARGO_KG if has_cases else 0, step=1,
             key=f"cargo_weight_{loading_mode}",
         )
         st.caption(f"Допустимая нагрузка мотоцикла по руководству Voge — {MAX_PAYLOAD_KG} кг.")
