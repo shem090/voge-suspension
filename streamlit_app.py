@@ -465,21 +465,27 @@ if df_base is not None:
     with st.expander("Проверить рабочий сэг", expanded=not overloaded and (
         status == "reference" or result is None or b_z_pred == REAR_PRELOAD_CAP
     )):
-        st.caption("Ориентир клуба — 58 мм спереди и 60 мм сзади, около 30% хода. "
-                   "На ровной площадке замерьте расстояние с полностью вывешенной подвеской, "
-                   "затем между теми же точками с райдером и выбранной загрузкой. "
-                   "Сзади меряйте от оси колеса до метки на мотоцикле. Разница двух замеров — рабочий сэг.")
-        st.caption("Если сэг больше ориентира, добавьте преднатяг и повторите замер. "
-                   "Если меньше — уменьшите. На вилке выставляйте одинаковый преднатяг на обоих перьях.")
+        st.markdown(
+            "Ориентир клуба — 58 мм спереди и 60 мм сзади, около 30% хода. "
+            "На ровной площадке замерьте расстояние с полностью вывешенной подвеской, "
+            "затем между теми же точками с райдером и выбранной загрузкой. "
+            "Сзади меряйте от оси колеса до метки на мотоцикле. Разница двух замеров — рабочий сэг."
+        )
+        st.markdown(
+            "Если сэг больше ориентира, добавьте преднатяг и повторите замер. "
+            "Если меньше — уменьшите. На вилке выставляйте одинаковый преднатяг на обоих перьях."
+        )
         for axle, target, travel in (("Перед", 58, 194), ("Зад", 60, 198)):
             measured = st.number_input(
-                f"{axle} · замер, мм", min_value=1, max_value=travel, value=None, step=1,
+                f"{axle} · замер, мм", min_value=0, max_value=travel, value=0, step=1,
                 key=f"sag_{axle}_{user_weight}_{loading_mode}",
             )
-            if measured is not None:
+            if measured:
                 difference = measured - target
-                st.caption(f"{measured / travel:.0%} хода · "
-                           + (f"{difference:+d} мм от ориентира" if difference else "совпадает с ориентиром"))
+                st.markdown(
+                    f"{measured / travel:.0%} хода · "
+                    + (f"{difference:+d} мм от ориентира" if difference else "совпадает с ориентиром")
+                )
 
     st.subheader("Отзывы владельцев")
     review_weights = pd.to_numeric(df_reviews["Вес"].map(number), errors="coerce")
