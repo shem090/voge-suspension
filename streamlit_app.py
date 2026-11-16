@@ -270,18 +270,18 @@ if df_base is not None:
 
     result = suspension_setting(df_base, user_weight, loading_mode)
     status = None
-    b_notes = ""
     b_p_szh = b_p_otb = b_p_tur = b_z_pred = b_z_otb = None
     if result is None:
-        st.info("В таблице клуба пока нет полной строки для этого режима. Запишите свой замер сэга.")
+        st.info("Для выбранной загрузки пока нет настроек.")
     elif not overloaded:
-        values, status, low, high, _, b_notes = result
+        values, status, lower_weight, upper_weight, _, _ = result
         b_p_szh = values["comp_f"]
         b_p_otb = values["reb_f"]
         b_p_tur = values["preload_f"]
         b_z_pred = values["preload_r"]
         b_z_otb = values["reb_r"]
-        rear_reference = None
+        rear_outside_range = False
+        rear_adjusted = False
         rear_weight = rear_lookup_weight(user_weight, passenger_weight, cargo_weight,
                                          has_passenger, has_cases)
         if rear_weight != user_weight:
@@ -289,17 +289,13 @@ if df_base is not None:
             if rear_result is not None:
                 rear_values = rear_result[0]
                 b_z_pred, b_z_otb = rear_values["preload_r"], rear_values["reb_r"]
-                b_notes = ""
-                if rear_result[1] == "reference":
-                    rear_reference = rear_result[2]
-        if status == "table":
-            st.subheader("Стартовые настройки")
-        elif status == "interpolated":
-            st.subheader("Стартовые настройки")
-            st.caption(f"Расчёт между точками {low} и {high} кг.")
-        else:
+                rear_outside_range = rear_result[1] == "reference"
+                rear_adjusted = True
+        if status == "reference":
             st.subheader("Ближайшие настройки")
-            st.info(f"Для {user_weight} кг показана ближайшая точка {low} кг. Проверьте сэг под нагрузкой.")
+            st.info(f"Для {user_weight} кг использованы настройки для {lower_weight} кг. Проверьте сэг под нагрузкой.")
+        else:
+            st.subheader("Стартовые настройки")
         if b_z_pred >= REAR_PRELOAD_CAP:
             st.warning(f"Расчёт заднего преднатяга достиг верхней границы — {REAR_PRELOAD_CAP} щелчков. "
                        "Проверьте сэг под выбранной нагрузкой и фактический ход регулятора.")
@@ -324,21 +320,26 @@ if df_base is not None:
           </section>
         </div>
         """, unsafe_allow_html=True)
-        if rear_weight != user_weight:
-            st.caption("Задние настройки учитывают введённую загрузку. "
-                       f"Опорные массы режима: пассажир {REFERENCE_PASSENGER_KG if has_passenger else 0} кг, "
-                       f"багаж с кофрами {REFERENCE_CARGO_KG if has_cases else 0} кг.")
-        if rear_reference is not None:
-            st.caption(f"Поправка на загрузку вышла за таблицу. Для задней подвески показана "
-                       f"крайняя строка {rear_reference} кг. Проверьте сэг с этой загрузкой.")
+        if rear_outside_range:
+            st.caption("Нагрузка на заднюю подвеску вышла за диапазон расчёта. "
+                       "Показаны ближайшие настройки. Проверьте сэг под нагрузкой.")
         with st.expander("Как выставить щелчки"):
             st.markdown("**Вилка:** сжатие — правое перо, отбой — левое. Преднатяг выставляется по рискам на обоих перьях.")
             st.markdown("**Амортизатор:** отбой — винт снизу. Преднатяг — ручка справа, щелчки по часовой от полностью распущенного положения.")
             st.caption("Для сжатия и отбоя аккуратно закройте регулировку по часовой и отсчитайте щелчки против часовой. "
                        "Первый ощутимый щелчок после упора — позиция 1. К H — сильнее, к S — слабее. "
                        "Для настройки заднего преднатяга разгрузите амортизатор на центральной подставке.")
-            if b_notes:
-                st.caption(b_notes)
+        if status == "interpolated" or rear_adjusted:
+            with st.expander("Как рассчитаны настройки"):
+                if status == "interpolated":
+                    st.caption(f"Для {user_weight} кг калькулятор берёт промежуточные значения "
+                               f"между настройками для {lower_weight} и {upper_weight} кг.")
+                if rear_adjusted:
+                    st.caption("Задний преднатяг и отбой пересчитаны с учётом того, насколько "
+                               "введённые веса отличаются от базовых для выбранного режима.")
+                    st.caption(f"В базовых настройках этого режима учтены пассажир "
+                               f"{REFERENCE_PASSENGER_KG if has_passenger else 0} кг, "
+                               f"кофры и багаж {REFERENCE_CARGO_KG if has_cases else 0} кг.")
 
     pressure_title = "Оценка давления"
     pressure_content = ""
@@ -383,7 +384,7 @@ if df_base is not None:
         with st.expander("Как считается оценка"):
             st.caption(f"Линейная шкала по общей загрузке. До {REFERENCE_RIDER_KG} кг — 2,2 / 2,5 бар, "
                        f"при {MAX_PAYLOAD_KG} кг — 2,5 / 2,9 бар. "
-                       "Весовые точки выбраны для калькулятора. Voge указывает давление по режимам поездки.")
+                       "Это шкала калькулятора. Давление по Voge указано выше.")
             if has_cases or cargo_weight:
                 st.caption("Для соло с багажом отдельного значения в мануале Voge нет.")
 
