@@ -37,7 +37,7 @@ st.markdown("""
 .moto-panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: .65rem; margin-bottom: .7rem; }
 .moto-panel-title { font-size: .94rem; font-weight: 700; line-height: 1.2; }
 .moto-panel-meta { color: var(--moto-muted); font-size: .73rem; line-height: 1.25; }
-.moto-setup-grid { display: grid; grid-template-columns: 1.25fr 1fr; gap: .55rem; }
+.moto-setup-grid { display: grid; grid-template-columns: 1.25fr 1fr; gap: .55rem; padding-bottom: .625rem; }
 .moto-metrics { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
 .moto-metric { min-width: 0; padding: .48rem .45rem 0; border-top: 1px solid var(--moto-line); }
 .moto-metric:first-child { padding-left: 0; }
@@ -336,9 +336,7 @@ if df_base is not None:
     st.caption(f"[Руководство Voge · стр. 4 и 78]({MANUAL_URL})")
 
     if not overloaded:
-        with st.expander("Расчётный минимум давления"):
-            st.caption("Инженерная оценка для штатных индексов 54V / 69V. "
-                       "Дорожные значения Voge приведены выше.")
+        with st.expander("Нагрузка на колёса"):
             use_scales = st.checkbox("Ввести показания весов")
             axle_loads = None
             if use_scales:
@@ -373,12 +371,16 @@ if df_base is not None:
                     st.warning("Нагрузка выше значения из таблицы Voge: 161 кг спереди и 282 кг сзади. "
                                "Сверьте показания весов и ограничения своего мотоцикла. "
                                "При подтверждённом превышении уменьшите загрузку.")
-                if not (use_scales and exceeds_axle_limit):
-                    front_bar, rear_bar = (engineering_minimum_bar(load, rated) for load, rated in
-                                           zip(axle_loads, TYRE_RATED_LOADS_KG))
-                    st.write(f"**Расчётный минимум** — перед {front_bar:.1f} бар · зад {rear_bar:.1f} бар.")
-            st.caption("Принято опорное давление шин 2,9 бар и конструктивная скорость 210 км/ч.")
-            st.markdown(f"[Методика ETRTO 2007, MC.16]({ETRTO_2007_URL})")
+                if not (use_scales and exceeds_axle_limit) and st.checkbox("Показать справочный расчёт ETRTO"):
+                    front_bar, rear_bar = (
+                        f"{engineering_minimum_bar(load, rated):.1f}".replace(".", ",")
+                        for load, rated in zip(axle_loads, TYRE_RATED_LOADS_KG)
+                    )
+                    st.caption("Для накачки используйте блок «Дорожное давление» выше.")
+                    st.write(f"**Теоретический минимум ETRTO** — перед {front_bar} бар · зад {rear_bar} бар.")
+                    st.caption("Исходные данные модели: индексы шин 54V / 69V, опорное давление 2,9 бар, "
+                               "конструктивная скорость 210 км/ч.")
+                    st.markdown(f"[Методика ETRTO 2007, MC.16]({ETRTO_2007_URL})")
 
     with st.expander("Проверить рабочий сэг", expanded=(status == "reference" or result is None
                                                         or b_z_pred == REAR_PRELOAD_CAP)):
