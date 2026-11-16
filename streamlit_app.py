@@ -48,9 +48,10 @@ st.markdown("""
     line-height: 1; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.04em;
 }
 .moto-unit { color: var(--moto-muted); font-size: .67rem; }
-.moto-pressure-line { display: grid; grid-template-columns: 1.1fr 1fr 1fr; align-items: center; gap: .35rem; }
-.moto-pressure-line + .moto-pressure-line { margin-top: .55rem; }
+.moto-pressure-line { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .55rem; }
 .moto-pressure-line .moto-value { color: var(--moto-accent); }
+.moto-pressure-reference { margin-top: .65rem; padding-top: .6rem; border-top: 1px solid var(--moto-line); }
+.moto-pressure-reference p { margin: .25rem 0 0; font-size: .85rem; }
 .moto-load { border-top: 1px solid var(--moto-line); padding-top: .6rem; margin-top: .65rem; }
 .moto-review-head { display: flex; justify-content: space-between; align-items: baseline; gap: .75rem; }
 .moto-review-name { font-size: .98rem; font-weight: 700; overflow-wrap: anywhere; min-width: 0; }
@@ -148,15 +149,6 @@ def suspension_setting(base, weight, mode):
     if pd.isna(notes):
         notes = ""
     return settings, status, int(left["weight"]), int(right["weight"]), limited, str(notes).strip()
-
-
-def tire_pressures(mode, extra_cargo=False):
-    mode = mode.casefold().replace("ё", "е")
-    if "вдвоем" in mode:
-        return (("С пассажиром", "2,5", "2,9"),)
-    if "кофры" in mode or extra_cargo:
-        return (("Соло", "2,2", "2,5"), ("С пассажиром", "2,5", "2,9"))
-    return (("Соло", "2,2", "2,5"),)
 
 
 def rear_lookup_weight(rider_weight, passenger_weight, cargo_weight, has_passenger, has_cases):
@@ -325,46 +317,52 @@ if df_base is not None:
             if b_notes:
                 st.caption(b_notes)
 
-    extra_cargo = bool(cargo_weight)
-    pressure_rows = '<div class="moto-panel-meta">Уменьшите загрузку до допустимой.</div>'
+    pressure_title = "Оценка давления"
+    pressure_content = ""
     load_summary = ""
-    if not overloaded:
-        pressure_rows = "".join(
-            f'<div class="moto-pressure-line"><span class="moto-label">{label}</span>'
-            f'<div><span class="moto-label">Перед</span><strong class="moto-value">{front}</strong></div>'
-            f'<div><span class="moto-label">Зад</span><strong class="moto-value">{rear}</strong></div></div>'
-            for label, front, rear in tire_pressures(loading_mode, extra_cargo)
-        )
+    if overloaded:
+        pressure_title = "Давление в шинах"
+        pressure_content = '<div class="moto-panel-meta">Уменьшите загрузку до допустимой.</div>'
+    else:
+        if has_passenger:
+            pressure_title = "Давление в шинах"
+            pressure_content = '<div class="moto-panel-meta">С пассажиром используйте значения Voge ниже.</div>'
+        elif load_complete:
+            front, rear = (f"{value:.2f}".rstrip("0").replace(".", ",")
+                           for value in estimated_pressure_by_payload(counted_load))
+            pressure_content = (
+                f'<div class="moto-pressure-line" aria-label="Расчётная оценка по весу {counted_load} кг">'
+                f'<div><span class="moto-label">Перед</span><strong class="moto-value">{front}</strong></div>'
+                f'<div><span class="moto-label">Зад</span><strong class="moto-value">{rear}</strong></div></div>'
+            )
+        else:
+            pressure_content = '<div class="moto-panel-meta">Введите вес багажа, чтобы увидеть оценку.</div>'
         if load_complete:
             load_summary = f"Загрузка {counted_load} / {MAX_PAYLOAD_KG} кг · запас {load_remaining} кг"
         else:
             load_summary = f"Учтено {counted_load} кг · заполните оставшиеся поля загрузки"
-        if not has_passenger and (has_cases or extra_cargo):
-            load_summary += "<br>Для соло с багажом отдельного значения в мануале Voge нет."
+        pressure_content += (
+            '<div class="moto-pressure-reference">'
+            '<div class="moto-panel-meta">Для накачки по мануалу Voge · перед / зад</div>'
+            '<p>Один — 2,2 / 2,5 бар<br>Вдвоём — 2,5 / 2,9 бар</p></div>'
+        )
     st.markdown(
-        '<section class="moto-panel" aria-label="Дорожное давление Voge">'
-        '<div class="moto-panel-head"><b class="moto-panel-title">Дорожное давление</b>'
+        f'<section class="moto-panel" aria-label="{pressure_title}">'
+        f'<div class="moto-panel-head"><b class="moto-panel-title">{pressure_title}</b>'
         '<span class="moto-panel-meta">бар · на холодную</span></div>'
-        f'{pressure_rows}'
+        f'{pressure_content}'
         + (f'<div class="moto-panel-meta moto-load">{load_summary}</div>' if load_summary else "")
         + '</section>', unsafe_allow_html=True,
     )
     st.caption(f"[Руководство Voge · стр. 4 и 78]({MANUAL_URL})")
 
-    if not overloaded:
-        with st.expander("Оценка давления по общей нагрузке"):
-            st.caption(f"Справочная шкала: до {REFERENCE_RIDER_KG} кг — 2,2 / 2,5 бар, "
+    if not overloaded and not has_passenger:
+        with st.expander("Как считается оценка"):
+            st.caption(f"Линейная шкала по общей загрузке. До {REFERENCE_RIDER_KG} кг — 2,2 / 2,5 бар, "
                        f"при {MAX_PAYLOAD_KG} кг — 2,5 / 2,9 бар. "
-                       "Весовые точки шкалы выбраны для калькулятора. Voge указывает давление по режимам поездки.")
-            if has_passenger:
-                st.caption("Для поездки с пассажиром используйте дорожную пару Voge в карточке выше.")
-            elif load_complete:
-                front, rear = (f"{value:.2f}".rstrip("0").replace(".", ",")
-                               for value in estimated_pressure_by_payload(counted_load))
-                st.write(f"**Оценка при {counted_load} кг** — перед {front} · зад {rear} бар.")
-                st.caption("Для накачки ориентируйтесь на руководство Voge и наклейку своего мотоцикла.")
-            else:
-                st.caption("Введите вес багажа, чтобы увидеть оценку.")
+                       "Весовые точки выбраны для калькулятора. Voge указывает давление по режимам поездки.")
+            if has_cases or cargo_weight:
+                st.caption("Для соло с багажом отдельного значения в мануале Voge нет.")
 
     with st.expander("Проверить рабочий сэг", expanded=(status == "reference" or result is None
                                                         or b_z_pred == REAR_PRELOAD_CAP)):
