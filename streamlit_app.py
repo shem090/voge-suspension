@@ -75,6 +75,7 @@ st.markdown("""
     display: grid; gap: .5rem;
 }
 .st-key-ride_inputs [data-testid="stHorizontalBlock"] { grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); }
+.st-key-review_navigation { padding-top: .625rem; }
 .st-key-review_navigation [data-testid="stHorizontalBlock"] { grid-template-columns: minmax(0, .55fr) minmax(0, .55fr) minmax(0, 2fr); }
 :is(.st-key-ride_inputs, .st-key-review_navigation) [data-testid="stColumn"] { width: 100% !important; min-width: 0 !important; }
 .st-key-review_navigation button { min-height: 2.75rem; }
