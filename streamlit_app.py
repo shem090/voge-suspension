@@ -3,6 +3,7 @@ import pandas as pd
 import requests
 import math
 import re
+from bisect import bisect_left
 from html import escape
 
 # Настройка страницы (Темная тема и мобильный вид)
@@ -170,13 +171,40 @@ def suspension_setting(base, weight, mode):
     return settings, status, int(left["weight"]), int(right["weight"]), limited, str(notes).strip()
 
 
-def rear_lookup_weight(rider_weight, passenger_weight, cargo_weight, has_passenger, has_cases):
-    # Режим таблицы уже учитывает опорную загрузку. Пересчитываем только разницу.
-    reference_passenger = REFERENCE_PASSENGER_KG if has_passenger else 0
-    reference_cargo = REFERENCE_CARGO_KG if has_cases else 0
-    passenger_delta = 0 if passenger_weight is None else passenger_weight - reference_passenger
-    cargo_delta = 0 if cargo_weight is None else cargo_weight - reference_cargo
-    return rider_weight + passenger_delta * (0.8 / 0.6) + cargo_delta * (0.9 / 0.6)
+def rear_setting(base, modes, rider_weight, passenger_weight, cargo_weight):
+    # Доли веса на задней оси — допущения модели.
+    passenger_share, cargo_share, rider_share = 0.8, 0.9, 0.6
+    passenger_reference = REFERENCE_PASSENGER_KG * passenger_share
+    cargo_reference = REFERENCE_CARGO_KG * cargo_share
+    anchor_loads = (0, cargo_reference, passenger_reference, passenger_reference + cargo_reference)
+    mode_names = {mode.casefold().replace("ё", "е"): mode for mode in modes}
+    mode_keys = ("один", "один + кофры", "вдвоем", "вдвоем + кофры")
+    anchor_modes = tuple(mode_names.get(key) for key in mode_keys)
+
+    rear_load = passenger_weight * passenger_share + cargo_weight * cargo_share
+    index = bisect_left(anchor_loads, rear_load)
+    rear_columns = ("preload_r", "reb_r")
+    last_load = anchor_loads[-1]
+    if rear_load >= last_load:
+        lookup_weight = rider_weight + (rear_load - last_load) / rider_share
+        result = suspension_setting(base, lookup_weight, anchor_modes[-1])
+        return (result[0], result[1] == "reference") if result else None
+
+    upper = suspension_setting(base, rider_weight, anchor_modes[index])
+    if upper is None:
+        return None
+    if rear_load == anchor_loads[index]:
+        return upper[0], upper[1] == "reference"
+    lower = suspension_setting(base, rider_weight, anchor_modes[index - 1])
+    if lower is None:
+        return None
+    lower_load, upper_load = anchor_loads[index - 1:index + 1]
+    fraction = (rear_load - lower_load) / (upper_load - lower_load)
+    values = {
+        column: math.floor(lower[0][column] + (upper[0][column] - lower[0][column]) * fraction + 0.5)
+        for column in rear_columns
+    }
+    return values, lower[1] == "reference" or upper[1] == "reference"
 
 
 def estimated_pressure_by_payload(payload):
@@ -296,14 +324,15 @@ if df_base is not None:
         b_z_otb = values["reb_r"]
         rear_outside_range = False
         rear_adjusted = False
-        rear_weight = rear_lookup_weight(user_weight, setup_passenger_weight, setup_cargo_weight,
-                                         has_passenger, has_cases)
-        if rear_weight != user_weight:
-            rear_result = suspension_setting(df_base, rear_weight, loading_mode)
+        reference_passenger = REFERENCE_PASSENGER_KG if has_passenger else 0
+        reference_cargo = REFERENCE_CARGO_KG if has_cases else 0
+        rear_passenger = reference_passenger if setup_passenger_weight is None else setup_passenger_weight
+        rear_cargo = reference_cargo if setup_cargo_weight is None else setup_cargo_weight
+        if (rear_passenger, rear_cargo) != (reference_passenger, reference_cargo):
+            rear_result = rear_setting(df_base, modes, user_weight, rear_passenger, rear_cargo)
             if rear_result is not None:
-                rear_values = rear_result[0]
+                rear_values, rear_outside_range = rear_result
                 b_z_pred, b_z_otb = rear_values["preload_r"], rear_values["reb_r"]
-                rear_outside_range = rear_result[1] == "reference"
                 rear_adjusted = True
         if overloaded:
             st.subheader(f"Справочные настройки при {MAX_PAYLOAD_KG} кг")
@@ -355,11 +384,8 @@ if df_base is not None:
                     st.caption(f"Для {user_weight} кг калькулятор берёт промежуточные значения "
                                f"между настройками для {lower_weight} и {upper_weight} кг.")
                 if rear_adjusted:
-                    st.caption("Задний преднатяг и отбой пересчитаны с учётом того, насколько "
-                               "введённые веса отличаются от базовых для выбранного режима.")
-                    st.caption(f"В базовых настройках этого режима учтены пассажир "
-                               f"{REFERENCE_PASSENGER_KG if has_passenger else 0} кг, "
-                               f"кофры и багаж {REFERENCE_CARGO_KG if has_cases else 0} кг.")
+                    st.caption("Для заднего преднатяга и отбоя используется единая шкала нагрузки. "
+                               "Модель относит к задней оси примерно 80% веса пассажира и 90% веса багажа.")
 
     pressure_title = "Оценка давления"
     pressure_style = " moto-panel-overload" if overloaded else ""
