@@ -38,6 +38,8 @@ st.markdown("""
 .moto-panel-title { font-size: .94rem; font-weight: 700; line-height: 1.2; }
 .moto-panel-meta { color: var(--moto-muted); font-size: .73rem; line-height: 1.25; }
 .moto-setup-grid { display: grid; grid-template-columns: 1.25fr 1fr; gap: .55rem; padding-bottom: .625rem; }
+.moto-setup-overload .moto-panel { background: #2b2025; border-color: #a34f59; }
+.moto-setup-overload .moto-value { color: #ff9ca5; }
 .moto-metrics { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
 .moto-metric { min-width: 0; padding: .48rem .45rem 0; border-top: 1px solid var(--moto-line); }
 .moto-metric:first-child { padding-left: 0; }
@@ -264,16 +266,20 @@ if df_base is not None:
     load_complete = passenger_weight is not None and cargo_weight is not None
     load_remaining = MAX_PAYLOAD_KG - counted_load
     overloaded = load_remaining < 0
+    setup_passenger_weight, setup_cargo_weight = passenger_weight, cargo_weight
     if overloaded:
         st.error(f"Введённая нагрузка {counted_load} кг превышает предел Voge на {-load_remaining} кг. "
                  "Уменьшите загрузку.")
+        available_weight = MAX_PAYLOAD_KG - user_weight
+        setup_passenger_weight = min(passenger_weight or 0, available_weight)
+        setup_cargo_weight = available_weight - setup_passenger_weight
 
     result = suspension_setting(df_base, user_weight, loading_mode)
     status = None
     b_p_szh = b_p_otb = b_p_tur = b_z_pred = b_z_otb = None
     if result is None:
         st.info("Для выбранной загрузки пока нет настроек.")
-    elif not overloaded:
+    else:
         values, status, lower_weight, upper_weight, _, _ = result
         b_p_szh = values["comp_f"]
         b_p_otb = values["reb_f"]
@@ -282,7 +288,7 @@ if df_base is not None:
         b_z_otb = values["reb_r"]
         rear_outside_range = False
         rear_adjusted = False
-        rear_weight = rear_lookup_weight(user_weight, passenger_weight, cargo_weight,
+        rear_weight = rear_lookup_weight(user_weight, setup_passenger_weight, setup_cargo_weight,
                                          has_passenger, has_cases)
         if rear_weight != user_weight:
             rear_result = suspension_setting(df_base, rear_weight, loading_mode)
@@ -291,18 +297,24 @@ if df_base is not None:
                 b_z_pred, b_z_otb = rear_values["preload_r"], rear_values["reb_r"]
                 rear_outside_range = rear_result[1] == "reference"
                 rear_adjusted = True
-        if status == "reference":
+        if overloaded:
+            st.subheader(f"Справочные настройки при {MAX_PAYLOAD_KG} кг")
+            st.caption(f"В расчёте: райдер {user_weight} кг, пассажир {setup_passenger_weight} кг, "
+                       f"кофры и багаж {setup_cargo_weight} кг.")
+            st.caption("Перед поездкой уменьшите фактическую загрузку до допустимой и пересчитайте настройки.")
+        elif status == "reference":
             st.subheader("Ближайшие настройки")
             st.info(f"Для {user_weight} кг использованы настройки для {lower_weight} кг. Проверьте сэг под нагрузкой.")
         else:
             st.subheader("Стартовые настройки")
-        if b_z_pred >= REAR_PRELOAD_CAP:
+        if not overloaded and b_z_pred >= REAR_PRELOAD_CAP:
             st.warning(f"Расчёт заднего преднатяга достиг верхней границы — {REAR_PRELOAD_CAP} щелчков. "
                        "Проверьте сэг под выбранной нагрузкой и фактический ход регулятора.")
 
         front_preload = f"{b_p_tur:g}".replace(".", ",")
+        setup_style = " moto-setup-overload" if overloaded else ""
         st.markdown(f"""
-        <div class="moto-setup-grid">
+        <div class="moto-setup-grid{setup_style}">
           <section class="moto-panel" id="perednyaya-vilka" aria-label="Передняя вилка">
             <div class="moto-panel-head"><b class="moto-panel-title">Передняя вилка</b></div>
             <div class="moto-metrics">
@@ -320,7 +332,7 @@ if df_base is not None:
           </section>
         </div>
         """, unsafe_allow_html=True)
-        if rear_outside_range:
+        if rear_outside_range and not overloaded:
             st.caption("Нагрузка на заднюю подвеску вышла за диапазон расчёта. "
                        "Показаны ближайшие настройки. Проверьте сэг под нагрузкой.")
         with st.expander("Как выставить щелчки"):
@@ -329,7 +341,7 @@ if df_base is not None:
             st.caption("Для сжатия и отбоя аккуратно закройте регулировку по часовой и отсчитайте щелчки против часовой. "
                        "Первый ощутимый щелчок после упора — позиция 1. К H — сильнее, к S — слабее. "
                        "Для настройки заднего преднатяга разгрузите амортизатор на центральной подставке.")
-        if status == "interpolated" or rear_adjusted:
+        if not overloaded and (status == "interpolated" or rear_adjusted):
             with st.expander("Как рассчитаны настройки"):
                 if status == "interpolated":
                     st.caption(f"Для {user_weight} кг калькулятор берёт промежуточные значения "
@@ -388,8 +400,9 @@ if df_base is not None:
             if has_cases or cargo_weight:
                 st.caption("Для соло с багажом отдельного значения в мануале Voge нет.")
 
-    with st.expander("Проверить рабочий сэг", expanded=(status == "reference" or result is None
-                                                        or b_z_pred == REAR_PRELOAD_CAP)):
+    with st.expander("Проверить рабочий сэг", expanded=not overloaded and (
+        status == "reference" or result is None or b_z_pred == REAR_PRELOAD_CAP
+    )):
         st.caption("Ориентир клуба — 58 мм спереди и 60 мм сзади, около 30% хода. "
                    "На ровной площадке замерьте расстояние с полностью вывешенной подвеской, "
                    "затем между теми же точками с райдером и выбранной загрузкой. "
