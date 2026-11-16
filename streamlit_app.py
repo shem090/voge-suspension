@@ -5,6 +5,7 @@ import math
 import re
 from bisect import bisect_left
 from html import escape
+from pathlib import Path
 
 # Настройка страницы (Темная тема и мобильный вид)
 st.set_page_config(page_title="Подвеска Voge DS900X", page_icon="🏍️", layout="centered")
@@ -13,11 +14,13 @@ st.markdown("""
 <style>
 :root {
     --moto-bg: #13171c;
-    --moto-card: #1b2027;
+    --moto-card: #1d242d;
+    --moto-section-head: #232b35;
     --moto-line: #353d47;
     --moto-text: #f0f2f5;
     --moto-muted: #b0bac6;
     --moto-accent: #ffd27f;
+    --moto-shadow: 0 3px 10px #0004, inset 0 1px #ffffff0b;
 }
 .stApp {
     background: var(--moto-bg);
@@ -38,7 +41,13 @@ st.markdown("""
 }
 .moto-hero h1 { margin: .2rem 0 0; padding: 0; font-size: clamp(2rem, 7vw, 3.15rem); line-height: 1.05; letter-spacing: -.045em; }
 .stApp h2, .stApp h3 { font-size: 1.22rem; line-height: 1.25; margin: 0; padding: .4rem 0 .15rem; }
-.moto-panel { padding: .85rem .9rem; border: 1px solid var(--moto-line); border-radius: .85rem; background: var(--moto-card); }
+.moto-panel {
+    padding: .85rem .9rem;
+    border: 1px solid var(--moto-line);
+    border-radius: .85rem;
+    background: var(--moto-card);
+    box-shadow: var(--moto-shadow);
+}
 .moto-panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: .65rem; margin-bottom: .7rem; }
 .moto-panel-title { font-size: .94rem; font-weight: 700; line-height: 1.2; }
 .moto-panel-meta { color: var(--moto-muted); font-size: .73rem; line-height: 1.25; }
@@ -68,8 +77,18 @@ st.markdown("""
 .moto-review-line span, .moto-review-sag { font-size: .77rem; color: var(--moto-muted); }
 .moto-review-sag { margin-top: .4rem; }
 .moto-review-comment { line-height: 1.45; border-top: 1px solid var(--moto-line); margin-top: .6rem; padding-top: .55rem; overflow-wrap: anywhere; }
-.stApp [data-testid="stExpander"] details { border-color: var(--moto-line); border-radius: .7rem; }
+.stApp [data-testid="stExpander"] details {
+    background: var(--moto-card);
+    border-color: var(--moto-line);
+    border-radius: .7rem;
+    box-shadow: var(--moto-shadow);
+}
 .stApp [data-testid="stExpander"] summary { min-height: 2.55rem; }
+.stApp [data-testid="stExpander"] details[open] > summary {
+    background: var(--moto-section-head);
+    border-radius: .7rem .7rem 0 0;
+}
+.stApp [data-testid="stExpander"] [data-testid="stImage"] img { border-radius: .55rem; }
 .moto-advice { display: grid; gap: .55rem; }
 .moto-advice-card {
     --moto-advice-accent: #accced;
@@ -120,6 +139,7 @@ SETTING_COLUMNS = ("comp_f", "reb_f", "preload_f", "preload_r", "reb_r")
 REAR_PRELOAD_CAP = 25  # Наблюдение Shem090, а не подтверждённый предел для всех экземпляров.
 MAX_PAYLOAD_KG = 205
 MANUAL_URL = "https://voge.gr/wp-content/uploads/2021/09/DS900X-user-manual-.pdf"
+FORK_GUIDE_PHOTO = Path(__file__).resolve().parent / "assets" / "fork-adjusters.jpg"
 REFERENCE_RIDER_KG = 75
 REFERENCE_PASSENGER_KG = 55
 REFERENCE_CARGO_KG = 24
@@ -373,6 +393,10 @@ if df_base is not None:
                        "Показаны ближайшие настройки. Проверьте сэг под нагрузкой.")
         with st.expander("Как выставить щелчки"):
             st.markdown("**Вилка:** сжатие — правое перо, отбой — левое. Преднатяг выставляется по рискам на обоих перьях.")
+            if FORK_GUIDE_PHOTO.is_file():
+                st.image(str(FORK_GUIDE_PHOTO), width=480)
+                st.caption("Зелёная стрелка — винт сжатия или отбоя, в зависимости от пера. "
+                           "Красная — шестигранник преднатяга. Синяя — риски преднатяга.")
             st.markdown("**Амортизатор:** отбой — винт снизу. Преднатяг — ручка справа, щелчки по часовой от полностью распущенного положения.")
             st.caption("Для сжатия и отбоя аккуратно закройте регулировку по часовой и отсчитайте щелчки против часовой. "
                        "Первый ощутимый щелчок после упора — позиция 1. К H — сильнее, к S — слабее. "
