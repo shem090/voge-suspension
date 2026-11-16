@@ -242,7 +242,7 @@ if df_base is not None:
     with st.container(key="ride_inputs"):
         weight_column, mode_column = st.columns([1, 1.25])
         user_weight = weight_column.number_input(
-            "Райдер, кг", min_value=60, max_value=150, value=90, step=1,
+            "Райдер, кг", min_value=50, max_value=150, value=90, step=1,
             help="Введите вес в экипировке.",
         )
         loading_mode = mode_column.selectbox("Загрузка", modes)
