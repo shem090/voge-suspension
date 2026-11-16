@@ -108,6 +108,15 @@ st.markdown("""
     margin-bottom: .2rem;
 }
 .moto-advice .moto-advice-card p { margin: 0; line-height: 1.5; }
+.stApp .moto-sag-guide p {
+    color: #dce4ed;
+    font-size: 1rem;
+    line-height: 1.6;
+    margin: 0 0 .65rem;
+}
+.stApp .moto-sag-guide p:last-child { margin-bottom: 0; }
+.stApp .moto-sag-guide .moto-sag-target { color: var(--moto-text); font-weight: 600; }
+.moto-sag-target strong { color: var(--moto-accent); font-variant-numeric: tabular-nums; }
 /* Поля и выпадающие списки используют согласованные цвета темы Streamlit. */
 .stApp [data-testid="stButton"] button { background: var(--moto-card); color: var(--moto-text); border-color: var(--moto-line); }
 .stApp [data-testid="stButton"] button:hover { border-color: var(--moto-accent); color: var(--moto-accent); }
@@ -466,14 +475,16 @@ if df_base is not None:
         status == "reference" or result is None or b_z_pred == REAR_PRELOAD_CAP
     )):
         st.markdown(
-            "Ориентир клуба — 58 мм спереди и 60 мм сзади, около 30% хода. "
-            "На ровной площадке замерьте расстояние с полностью вывешенной подвеской, "
+            '<div class="moto-sag-guide">'
+            '<p class="moto-sag-target">Целевое значение СЭГ — <strong>58 мм</strong> спереди '
+            'и <strong>60 мм</strong> сзади (около 30% хода).</p>'
+            "<p>На ровной площадке замерьте расстояние с полностью вывешенной подвеской, "
             "затем между теми же точками с райдером и выбранной загрузкой. "
-            "Сзади меряйте от оси колеса до метки на мотоцикле. Разница двух замеров — рабочий сэг."
-        )
-        st.markdown(
-            "Если сэг больше ориентира, добавьте преднатяг и повторите замер. "
-            "Если меньше — уменьшите. На вилке выставляйте одинаковый преднатяг на обоих перьях."
+            "Сзади меряйте от оси колеса до метки на мотоцикле. Разница двух замеров — рабочий сэг.</p>"
+            "<p>Если сэг больше целевого значения, добавьте преднатяг и повторите замер. "
+            "Если меньше — уменьшите. На вилке выставляйте одинаковый преднатяг на обоих перьях.</p>"
+            "</div>",
+            unsafe_allow_html=True,
         )
         for axle, target, travel in (("Перед", 58, 194), ("Зад", 60, 198)):
             measured = st.number_input(
@@ -484,7 +495,7 @@ if df_base is not None:
                 difference = measured - target
                 st.markdown(
                     f"{measured / travel:.0%} хода · "
-                    + (f"{difference:+d} мм от ориентира" if difference else "совпадает с ориентиром")
+                    + (f"**{difference:+d} мм** от целевого значения" if difference else "совпадает с целевым значением")
                 )
 
     st.subheader("Отзывы владельцев")
