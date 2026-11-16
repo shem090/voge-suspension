@@ -38,8 +38,7 @@ st.markdown("""
 .moto-panel-title { font-size: .94rem; font-weight: 700; line-height: 1.2; }
 .moto-panel-meta { color: var(--moto-muted); font-size: .73rem; line-height: 1.25; }
 .moto-setup-grid { display: grid; grid-template-columns: 1.25fr 1fr; gap: .55rem; padding-bottom: .625rem; }
-.moto-setup-overload .moto-panel { background: #2b2025; border-color: #a34f59; }
-.moto-setup-overload .moto-value { color: #ff9ca5; }
+.moto-setup-overload .moto-panel, .moto-panel-overload { background: #2b2025; border-color: #a34f59; }
 .moto-metrics { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
 .moto-metric { min-width: 0; padding: .48rem .45rem 0; border-top: 1px solid var(--moto-line); }
 .moto-metric:first-child { padding-left: 0; }
@@ -52,6 +51,7 @@ st.markdown("""
 .moto-unit { color: var(--moto-muted); font-size: .67rem; }
 .moto-pressure-line { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .55rem; }
 .moto-pressure-line .moto-value { color: var(--moto-accent); }
+.moto-setup-overload .moto-value, .moto-panel-overload .moto-value { color: #ff9ca5; }
 .moto-pressure-reference { margin-top: .65rem; padding-top: .6rem; border-top: 1px solid var(--moto-line); }
 .moto-pressure-reference p { margin: .25rem 0 0; font-size: .85rem; }
 .moto-load { border-top: 1px solid var(--moto-line); padding-top: .6rem; margin-top: .65rem; }
@@ -262,10 +262,17 @@ if df_base is not None:
             key=f"cargo_weight_{loading_mode}",
         )
         st.caption(f"Допустимая нагрузка мотоцикла по руководству Voge — {MAX_PAYLOAD_KG} кг.")
-    counted_load = user_weight + (passenger_weight or 0) + (cargo_weight or 0)
-    load_complete = passenger_weight is not None and cargo_weight is not None
-    load_remaining = MAX_PAYLOAD_KG - counted_load
-    overloaded = load_remaining < 0
+        counted_load = user_weight + (passenger_weight or 0) + (cargo_weight or 0)
+        load_complete = passenger_weight is not None and cargo_weight is not None
+        load_remaining = MAX_PAYLOAD_KG - counted_load
+        overloaded = load_remaining < 0
+        if overloaded:
+            load_summary = f"Загрузка {counted_load} / {MAX_PAYLOAD_KG} кг · превышение {-load_remaining} кг"
+        elif load_complete:
+            load_summary = f"Загрузка {counted_load} / {MAX_PAYLOAD_KG} кг · запас {load_remaining} кг"
+        else:
+            load_summary = f"Учтено {counted_load} кг · заполните оставшиеся поля загрузки"
+        st.caption(load_summary)
     setup_passenger_weight, setup_cargo_weight = passenger_weight, cargo_weight
     if overloaded:
         st.error(f"Введённая нагрузка {counted_load} кг превышает предел Voge на {-load_remaining} кг. "
@@ -354,40 +361,42 @@ if df_base is not None:
                                f"кофры и багаж {REFERENCE_CARGO_KG if has_cases else 0} кг.")
 
     pressure_title = "Оценка давления"
-    pressure_content = ""
-    load_summary = ""
+    pressure_style = " moto-panel-overload" if overloaded else ""
+    pressure_load = MAX_PAYLOAD_KG if overloaded else counted_load
     if overloaded:
         pressure_title = "Давление в шинах"
-        pressure_content = '<div class="moto-panel-meta">Уменьшите загрузку до допустимой.</div>'
+        pressure_caption = f"Справочно по шкале калькулятора при {MAX_PAYLOAD_KG} кг. Уменьшите загрузку до допустимой."
+    elif has_passenger:
+        pressure_title = "Давление в шинах"
+        pressure_caption = "С пассажиром используйте значения Voge ниже."
+    elif not load_complete:
+        pressure_caption = "Введите вес багажа, чтобы увидеть оценку."
     else:
-        if has_passenger:
-            pressure_title = "Давление в шинах"
-            pressure_content = '<div class="moto-panel-meta">С пассажиром используйте значения Voge ниже.</div>'
-        elif load_complete:
-            front, rear = (f"{value:.2f}".rstrip("0").replace(".", ",")
-                           for value in estimated_pressure_by_payload(counted_load))
-            pressure_content = (
-                f'<div class="moto-pressure-line" aria-label="Расчётная оценка по весу {counted_load} кг">'
-                f'<div><span class="moto-label">Перед</span><strong class="moto-value">{front}</strong></div>'
-                f'<div><span class="moto-label">Зад</span><strong class="moto-value">{rear}</strong></div></div>'
-            )
-        else:
-            pressure_content = '<div class="moto-panel-meta">Введите вес багажа, чтобы увидеть оценку.</div>'
-        if load_complete:
-            load_summary = f"Загрузка {counted_load} / {MAX_PAYLOAD_KG} кг · запас {load_remaining} кг"
-        else:
-            load_summary = f"Учтено {counted_load} кг · заполните оставшиеся поля загрузки"
+        pressure_caption = ""
+    pressure_content = ""
+    if overloaded or (load_complete and not has_passenger):
+        front, rear = (f"{value:.2f}".rstrip("0").replace(".", ",")
+                       for value in estimated_pressure_by_payload(pressure_load))
+        pressure_content = (
+            f'<div class="moto-pressure-line" aria-label="Расчётная оценка по весу {pressure_load} кг">'
+            f'<div><span class="moto-label">Перед</span><strong class="moto-value">{front}</strong></div>'
+            f'<div><span class="moto-label">Зад</span><strong class="moto-value">{rear}</strong></div></div>'
+        )
+    if pressure_caption:
+        caption_style = " moto-load" if overloaded else ""
+        pressure_content += f'<div class="moto-panel-meta{caption_style}">{pressure_caption}</div>'
+    if not overloaded:
         pressure_content += (
             '<div class="moto-pressure-reference">'
             '<div class="moto-panel-meta">Для накачки по мануалу Voge · перед / зад</div>'
             '<p>Один — 2,2 / 2,5 бар<br>Вдвоём — 2,5 / 2,9 бар</p></div>'
         )
     st.markdown(
-        f'<section class="moto-panel" aria-label="{pressure_title}">'
+        f'<section class="moto-panel{pressure_style}" aria-label="{pressure_title}">'
         f'<div class="moto-panel-head"><b class="moto-panel-title">{pressure_title}</b>'
         '<span class="moto-panel-meta">бар · на холодную</span></div>'
         f'{pressure_content}'
-        + (f'<div class="moto-panel-meta moto-load">{load_summary}</div>' if load_summary else "")
+        + (f'<div class="moto-panel-meta moto-load">{load_summary}</div>' if not overloaded else "")
         + '</section>', unsafe_allow_html=True,
     )
     st.caption(f"[Руководство Voge · стр. 4 и 78]({MANUAL_URL})")
