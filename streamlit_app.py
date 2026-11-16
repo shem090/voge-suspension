@@ -371,15 +371,15 @@ if df_base is not None:
                     st.warning("Нагрузка выше значения из таблицы Voge: 161 кг спереди и 282 кг сзади. "
                                "Сверьте показания весов и ограничения своего мотоцикла. "
                                "При подтверждённом превышении уменьшите загрузку.")
-                if not (use_scales and exceeds_axle_limit) and st.checkbox("Показать справочный расчёт ETRTO"):
+                elif st.checkbox("Показать справочный расчёт ETRTO"):
                     front_bar, rear_bar = (
                         f"{engineering_minimum_bar(load, rated):.1f}".replace(".", ",")
                         for load, rated in zip(axle_loads, TYRE_RATED_LOADS_KG)
                     )
                     st.caption("Для накачки используйте блок «Дорожное давление» выше.")
                     st.write(f"**Теоретический минимум ETRTO** — перед {front_bar} бар · зад {rear_bar} бар.")
-                    st.caption("Исходные данные модели: индексы шин 54V / 69V, опорное давление 2,9 бар, "
-                               "конструктивная скорость 210 км/ч.")
+                    st.caption("Индексы шин 54V / 69V. Для формулы принято 2,9 бар при эталонной "
+                               "нагрузке каждой шины и конструктивная скорость 210 км/ч.")
                     st.markdown(f"[Методика ETRTO 2007, MC.16]({ETRTO_2007_URL})")
 
     with st.expander("Проверить рабочий сэг", expanded=(status == "reference" or result is None
